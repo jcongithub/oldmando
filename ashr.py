@@ -5,15 +5,17 @@ import sys
 
 from datetime import datetime
 from datetime import timedelta
-from printer import print_dataframe_as_table
 import glob
 from download import download_price_history
 
 is_debug = False
 
 if __name__ == '__main__':
-	download_price_history('ashr')
-	download_price_history('^ssec')
+	if(len(sys.argv) > 1):
+		if(sys.argv[1] == '-d'):
+			## download prices			
+			download_price_history('ashr')
+			download_price_history('^ssec')
 
 	pd.options.display.width = 1000
 	ashr_df = pd.read_csv('data/ashr.price.csv')
@@ -26,6 +28,7 @@ if __name__ == '__main__':
 	print('{} days price history from {} to {}'.format(len(ashr_df), ashr_df.iloc[len(ashr_df) - 1].name, ashr_df.iloc[0].name))
 	print('{} days price history from {} to {}'.format(len(ssei_df), ssei_df.iloc[len(ssei_df) - 1].name, ssei_df.iloc[0].name))
 
+	## merge 
 	history = []
 	for index, row in ashr_df.iterrows():
 		try:
@@ -48,11 +51,14 @@ if __name__ == '__main__':
 	print(df[['date', 'ssei', 'ashr', 'diff', 'perc']])
 
 	df = df.set_index('date')
-	df = df['2016-05-01':]
-	print(df)
+	
+	df = df['2016-01-01':]
+	
 	print(df.describe())
-	mean = df['perc'].mean()
-	df['ssei_adj'] = df['ssei'] * 0.01 * mean
+	df1 = df[['ashr']]
+	df1['ssei'] = df['ssei'] * 0.01
+	#df1['ashr'] = df1['ashr'] + (df1.iloc[0]['ssei'] - df1.iloc[0]['ashr'])
+	df1['ashr'] = df1['ashr'] + 6
 
-	df[['ashr', 'ssei_adj']].plot().grid(True)
+	df1.plot().grid(True)
 	plt.show()
