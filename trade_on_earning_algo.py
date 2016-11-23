@@ -10,10 +10,14 @@ import glob
 from download import download_price_history
 from download import download_earning_history
 
-is_debug = True
+is_debug = False
 def debug(msg):
 	if(is_debug):
 		print(msg)
+
+def info(msg):
+	print(msg)
+
 
 def date_plus(sdate, days, fmt='%Y-%m-%d'):
 	d = datetime.strptime(sdate, fmt) + timedelta(days=days)
@@ -58,15 +62,15 @@ def algo_trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_da
 
 	return list_trades
 
-def test_algo_trade_on_earning(ticker, buy_days, sell_days):
+def trade_on_earning(ticker, buy_days, sell_days):
 	ph = pd.read_csv('data/' + ticker + '.price.csv')
 	eh = pd.read_csv('data/' + ticker + '.earning.csv')
 
 	ph = ph.set_index('Date')
 	eh = eh.set_index('Date')
 	
-	debug('{} days price history from {} to {}'.format(len(ph), ph.iloc[len(ph) - 1].name, ph.iloc[0].name))
-	debug("{} earning history from {} to {}".format(len(eh), eh.iloc[len(eh) -1].name, eh.iloc[0].name))
+	info('{} days price history from {} to {}'.format(len(ph), ph.iloc[len(ph) - 1].name, ph.iloc[0].name))
+	info("{} earning history from {} to {}".format(len(eh), eh.iloc[len(eh) -1].name, eh.iloc[0].name))
 
 	list_trades = []
 	for sell_days in range(sell_days):
@@ -216,13 +220,11 @@ def find_stocks_meet_goal2(buy_day_range, sell_day_range, goal):
 
 
 
-def find_best_algo_params2(trades_file, buy_day_range, sell_day_range, goal):
+def find_best_algo_params2(trades, buy_day_range, sell_day_range, goal):
 #	test_trades = pd.read_csv('data/' + ticker + '.trades.csv')
 	meet = False
-	raw_test_trades = pd.read_csv(trades_file)
-	raw_test_trades = raw_test_trades[['earning_date','buy_date','buy_days','buy_price','month','profit','sell_date','sell_days','sell_price']]
-	test_trades = raw_test_trades.set_index('earning_date')
-	test_trades.to_csv(trades_file)
+	test_trades = trades[['buy_date','buy_days','buy_price','month','profit','sell_date','sell_days','sell_price']]
+	#test_trades = raw_test_trades.set_index('earning_date')
 
 	results = pd.DataFrame([]);
 
@@ -240,26 +242,56 @@ def find_best_algo_params2(trades_file, buy_day_range, sell_day_range, goal):
 				else:
 					results.append(trades)
 
-	another = results.assign(stock=trades_file)	
-	print(another)
-	return another
+	#another = results.assign(stock=trades_file)	
+	print(results)
+	return results
 
+
+def print_command_line_exit():
+	print("trade_on_earning_algo [-d] tickers")
+	exit()
+
+def check_operations(opt):
+	supported_opts = 'dt'
+	for c in opt[1:]:
+		if c not in supported_opts:
+			print_command_line_exit()
 
 if __name__ == '__main__':
 	pd.options.display.width = 1000
 	BUY_DAYS = 15
 	SELL_DAYS = 15
-	GOAL = 22
+	GOAL = 15
 
-	if(len(sys.argv) <= 1):
-		print("trade_on_earning_algo ticker")
+	if(len(sys.argv) < 2):
+		print_command_line_exit()
+
+	if(sys.argv[1][0] != '-'):
+		tickers = sys.argv[1:]
+		opt = []
 	else:
-		ticker = sys.argv[1]
-		download_price_history(ticker)
-		download_earning_history(ticker)
-		trades = test_algo_trade_on_earning(ticker, BUY_DAYS, SELL_DAYS)
+		opt = sys.argv[1][1:]
+		check_operations(opt)
+		tickers = sys.argv[2:]		
 
-		print(trades)
+	if(len(tickers) == 0):
+		print_command_line_exit()
+
+
+	if 'd' in opt:
+		for ticker in tickers:
+			download_price_history(ticker)
+			download_earning_history(ticker)
+
+
+	for ticker in tickers:
+		df = trade_on_earning(ticker, BUY_DAYS, SELL_DAYS)
+		print(df.groupby(['buy_days', 'sell_days']).agg(['count']))
+		#find_best_algo_params2(df, BUY_DAYS, SELL_DAYS, GOAL)
+
+
+
+
 
 
 #	find_stocks_meet_goal2(BUY_DAYS, SELL_DAYS, GOAL)
