@@ -62,7 +62,7 @@ def algo_trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_da
 
 	return list_trades
 
-def trade_on_earning(ticker, buy_days, sell_days):
+def trade_on_earning(ticker, buy_days_range, sell_days_range):
 	ph = pd.read_csv('data/' + ticker + '.price.csv')
 	eh = pd.read_csv('data/' + ticker + '.earning.csv')
 
@@ -71,17 +71,16 @@ def trade_on_earning(ticker, buy_days, sell_days):
 	
 	info('{} days price history from {} to {}'.format(len(ph), ph.iloc[len(ph) - 1].name, ph.iloc[0].name))
 	info("{} earning history from {} to {}".format(len(eh), eh.iloc[len(eh) -1].name, eh.iloc[0].name))
+	info('Test trading on buying between {} days before earning day and selling between 0 - {} days'.format(buy_days_range, sell_days_range))
 
 	list_trades = []
-	for sell_days in range(sell_days):
-		for buy_days in range(buy_days):
+	for sell_days in range(sell_days_range):
+		for buy_days in range(buy_days_range):
 			trades = algo_trade_on_earning(ph, eh, -buy_days, sell_days)
 			list_trades.extend(trades)
 
 	df = pd.DataFrame(list_trades)
-	df.to_csv('data/' + ticker + ".trades.csv")
-	return df.set_index('earning_date')
-
+	return df
 
 def performance(trades):
 	df = pd.DataFrame(trades)
@@ -257,6 +256,24 @@ def check_operations(opt):
 		if c not in supported_opts:
 			print_command_line_exit()
 
+def group_summery(group):
+	wining_trades = group[group.profit > 0]
+	wining_trades['plp'] = wining_trades['profit'] / wining_trades['buy_price'] * 100
+	lossing_trades = group[group.profit < 0]
+	tied_trades = group[group.profit == 0]
+
+
+	return pd.DataFrame({
+		'num_win' : [len(wining_trades)],
+		'mean_profit' : wining_trades['plp'].mean(),
+		'min_profit'  : wining_trades['plp'].min(),
+		'max_profit'  : wining_trades['plp'].max(),
+		'num_loss': [len(lossing_trades)],
+		'num_tie' : [len(tied_trades)],
+		})
+
+
+
 if __name__ == '__main__':
 	pd.options.display.width = 1000
 	BUY_DAYS = 15
@@ -283,10 +300,40 @@ if __name__ == '__main__':
 			download_price_history(ticker)
 			download_earning_history(ticker)
 
+	if 't' in opt:
+		for ticker in tickers:
+			df = trade_on_earning(ticker, BUY_DAYS, SELL_DAYS)
+			df = df[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+			df.to_csv('data/' + ticker + ".trades.csv")
+
 
 	for ticker in tickers:
-		df = trade_on_earning(ticker, BUY_DAYS, SELL_DAYS)
-		print(df.groupby(['buy_days', 'sell_days']).agg(['count']))
+		df = pd.read_csv('data/' + ticker + '.trades.csv')
+		print("{} trades".format(len(df)))
+		num_earnings = len(df.drop_duplicates(['earning_date']))
+
+		grouped = df.groupby(['buy_days', 'sell_days'])
+
+		summery = grouped.apply(group_summery)
+
+		print(summery.sort_values(['num_win'], ascending=False).head(10))
+		
+		#Get top 5 buy and sell days have most win profit trades in all earning time
+		#print("Top 5 buy/sell days combinations which generate most winning trades on {} earnings".format(num_earnings))
+		#print(df[df.profit > 0].groupby(['buy_days', 'sell_days']).size().sort_values().tail(5))
+
+		#print("Top 5 buy/sell days combinations which generate most profit on {} earnings".format(num_earnings))
+		#grouped = df.groupby(['buy_days', 'sell_days'])
+		#print(grouped.agg({'profit':sum}))
+		#print(grouped.agg({'profit':lambda x : sum(x > 0)}))
+		#print(grouped.reset_index())
+
+		#print(df.sort(['buy_days', 'sell_days']))
+
+		#df1 = df1[['month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price', 'sell_price', 'profit']]
+		#
+
+		
 		#find_best_algo_params2(df, BUY_DAYS, SELL_DAYS, GOAL)
 
 
