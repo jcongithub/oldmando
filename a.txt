@@ -1,0 +1,683 @@
+1
+None
+<table border="0" cellpadding="0" cellspacing="0" class="USMN_EarningsCalendar" id="ECCompaniesTable">
+<thead>
+<tr>
+<th>
+<a href="javascript:void(0);" onclick="getdata('earningtype',1)">Time</a>
+</th>
+<th>
+						                Company Name (Symbol) <br/> Market Cap<br/>
+                                        Sort by: <a href="javascript:void(0);" onclick="getdata('name',1)">Name</a> / <a href="javascript:void(0);" onclick="getdata('marketcap',1)">Size</a>
+</th>
+<th>
+							            Expected Report Date
+					                </th>
+<th>
+                                        Fiscal<br/>
+							            Quarter<br/>
+                                        Ending
+					                </th>
+<th>
+<span id="two_column_main_content_CompanyTable_EPS">
+                                            Consensus<br/>
+							                EPS* Forecast
+                                        </span>
+</th>
+<th>
+						                # of Ests
+					                </th>
+<th style="">
+<span id="two_column_main_content_CompanyTable_previousreportdate">
+                                            Last Year's<br/>
+                                            Report Date
+						                </span>
+</th>
+<th>
+						                Last Year's EPS*
+					                </th>
+<th style="display:none">
+				                        % Suprise<br/>
+</th>
+</tr>
+</thead>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/amba/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/amba" id="two_column_main_content_CompanyTable_companyname_0">Ambarella, Inc. (AMBA) <br/><b>Market Cap: $2.05B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.68
+							    </td>
+<td>
+								    2
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.87
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/amswa/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/amswa" id="two_column_main_content_CompanyTable_companyname_1">American Software, Inc. (AMSWA) <br/><b>Market Cap: $329.16M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.06
+							    </td>
+<td>
+								    1
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.07
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/asna/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/asna" id="two_column_main_content_CompanyTable_companyname_2">Ascena Retail Group, Inc. (ASNA) <br/><b>Market Cap: $1.19B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.21
+							    </td>
+<td>
+								    7
+							    </td>
+<td style="">
+								    12/01/2015
+							    </td>
+<td>
+								    $0.36
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/cm/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/cm" id="two_column_main_content_CompanyTable_companyname_3">Canadian Imperial Bank of Commerce (CM) <br/><b>Market Cap: $31.34B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $1.84
+							    </td>
+<td>
+								    3
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $1.79
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/cent/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/cent" id="two_column_main_content_CompanyTable_companyname_4">Central Garden &amp; Pet Company (CENT) <br/><b>Market Cap: $1.53B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Sep 2016
+							    </td>
+<td>
+								    $0.05
+							    </td>
+<td>
+								    3
+							    </td>
+<td style="">
+								    12/07/2015
+							    </td>
+<td>
+								    $0.01
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/cbk/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/cbk" id="two_column_main_content_CompanyTable_companyname_5">Christopher &amp; Banks Corporation (CBK) <br/><b>Market Cap: $64.8M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.05
+							    </td>
+<td>
+								    2
+							    </td>
+<td style="">
+								    12/08/2015
+							    </td>
+<td>
+								    $-0.01
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/cfi/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/cfi" id="two_column_main_content_CompanyTable_companyname_6">Culp, Inc. (CFI) <br/><b>Market Cap: $417.82M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.45
+							    </td>
+<td>
+								    3
+							    </td>
+<td style="">
+								    12/01/2015
+							    </td>
+<td>
+								    $0.41
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/dg/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/dg" id="two_column_main_content_CompanyTable_companyname_7">Dollar General Corporation (DG) <br/><b>Market Cap: $22.06B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.92
+							    </td>
+<td>
+								    11
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.88
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/dci/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/dci" id="two_column_main_content_CompanyTable_companyname_8">Donaldson Company, Inc. (DCI) <br/><b>Market Cap: $5.31B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.35
+							    </td>
+<td>
+								    7
+							    </td>
+<td style="">
+								    11/25/2015
+							    </td>
+<td>
+								    $0.34
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/expr/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/expr" id="two_column_main_content_CompanyTable_companyname_9">Express, Inc. (EXPR) <br/><b>Market Cap: $1.06B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.12
+							    </td>
+<td>
+								    7
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.31
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/five/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/five" id="two_column_main_content_CompanyTable_companyname_10">Five Below, Inc. (FIVE) <br/><b>Market Cap: $2.19B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.09
+							    </td>
+<td>
+								    7
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.08
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/giii/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/giii" id="two_column_main_content_CompanyTable_companyname_11">G-III Apparel Group, LTD. (GIII) <br/><b>Market Cap: $1.29B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $1.53
+							    </td>
+<td>
+								    7
+							    </td>
+<td style="">
+								    12/02/2015
+							    </td>
+<td>
+								    $1.85
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/isle/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/isle" id="two_column_main_content_CompanyTable_companyname_12">Isle of Capri Casinos, Inc. (ISLE) <br/><b>Market Cap: $917.75M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.2
+							    </td>
+<td>
+								    3
+							    </td>
+<td style="">
+								    12/02/2015
+							    </td>
+<td>
+								    $0.19
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/kr/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/kr" id="two_column_main_content_CompanyTable_companyname_13">Kroger Company (The) (KR) <br/><b>Market Cap: $31.25B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.42
+							    </td>
+<td>
+								    11
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.43
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/le/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/le" id="two_column_main_content_CompanyTable_companyname_14">Lands' End, Inc. (LE) <br/><b>Market Cap: $570.12M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $-0.06
+							    </td>
+<td>
+								    1
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.33
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/swhc/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/swhc" id="two_column_main_content_CompanyTable_companyname_15">Smith &amp; Wesson Holding Corporation (SWHC) <br/><b>Market Cap: $1.35B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.55
+							    </td>
+<td>
+								    5
+							    </td>
+<td style="">
+								    12/08/2015
+							    </td>
+<td>
+								    $0.25
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/td/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/td" id="two_column_main_content_CompanyTable_companyname_16">Toronto Dominion Bank (The) (TD) <br/><b>Market Cap: $88.68B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.91
+							    </td>
+<td>
+								    3
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.87
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/ulta/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/ulta" id="two_column_main_content_CompanyTable_companyname_17">Ulta Salon, Cosmetics &amp; Fragrance, Inc. (ULTA) <br/><b>Market Cap: $16.24B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $1.37
+							    </td>
+<td>
+								    13
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $1.11
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/vsm/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/vsm" id="two_column_main_content_CompanyTable_companyname_18">Versum Materials, Inc. (VSM) <br/><b>Market Cap: $2.67B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Sep 2016
+							    </td>
+<td>
+								    $0.33
+							    </td>
+<td>
+								    4
+							    </td>
+<td style="">
+								    n/a
+							    </td>
+<td>
+								    $n/a
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/wday/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/wday" id="two_column_main_content_CompanyTable_companyname_19">Workday, Inc. (WDAY) <br/><b>Market Cap: $16.81B</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $-0.51
+							    </td>
+<td>
+								    34
+							    </td>
+<td style="">
+								    11/19/2015
+							    </td>
+<td>
+								    $-0.36
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/xcra/premarket" title="Pre-market Quotes"><img alt="Pre-Market Quotes" height="16" src="http://www.nasdaq.com/images/weather_sun.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/xcra" id="two_column_main_content_CompanyTable_companyname_20">Xcerra Corporation (XCRA) <br/><b>Market Cap: $353.58M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0
+							    </td>
+<td>
+								    4
+							    </td>
+<td style="">
+								    11/24/2015
+							    </td>
+<td>
+								    $-0.01
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+<tr>
+<td>
+<a href="http://www.nasdaq.com/symbol/zumz/after-hours" title="After Hours Quotes"><img alt="After Hours Quotes" height="16" src="http://www.nasdaq.com/images/half_moon.jpg" width="16"/></a>
+</td>
+<td>
+<a href="http://www.nasdaq.com/earnings/report/zumz" id="two_column_main_content_CompanyTable_companyname_21">Zumiez Inc. (ZUMZ) <br/><b>Market Cap: $609.6M</b></a>
+</td>
+<td>
+								    12/01/2016
+							    </td>
+<td>
+								    Oct 2016
+							    </td>
+<td>
+								    $0.36
+							    </td>
+<td>
+								    9
+							    </td>
+<td style="">
+								    12/03/2015
+							    </td>
+<td>
+								    $0.36
+							    </td>
+<td style="display:none">
+<span style="color:green">Met</span>
+</td>
+</tr>
+</table>
+

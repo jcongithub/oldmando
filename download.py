@@ -3,9 +3,51 @@ import requests
 import sys
 import os
 from datetime import datetime
-from datetime import date
 import pandas as pd
 import time
+import pandas as pd
+import numpy as np
+import re
+from datetime import date
+
+pd.options.display.width = 1000
+
+def download_earning_schedule(date):
+	base_url = 'http://www.nasdaq.com/earnings/earnings-calendar.aspx'
+	params = {'date' : date}
+	response = requests.get(base_url, params=params)
+	txt = response.text	
+	soup = BeautifulSoup(txt, 'html.parser')
+	tables = soup.find_all('table', {'id' : 'ECCompaniesTable'})
+
+	trs = tables[0].find_all('tr')
+
+	records = []
+	for row in range(1, len(trs)):
+		tr = trs[row]
+		tds = tr.find_all('td')
+		
+		company = tds[1].text.strip()
+		m = re.match('.*\(([A-Z].*)\).*', company)
+		ticker = m.group(1) 
+
+		record = {
+			'company' : company,
+			'ticker'  : ticker,
+			'date'    : tds[2].text.strip(),
+			'month'   : tds[3].text.strip(),
+			'eps'     : tds[4].text.strip(),
+			'numests' : tds[5].text.strip(),
+			'last_year_date' : tds[6].text.strip(),
+			'last_year_eps' : tds[7].text.strip(),
+		}
+
+		records.append(record)
+
+	df = pd.DataFrame(records)	
+	print(df)
+
+
 
 def download_earning_history(ticker):
 	print('Downloading earning history for {}'.format(ticker))
@@ -79,20 +121,4 @@ def download_history(ticker):
 	download_earning_history(ticker)
 
 if __name__ == '__main__':
-	if len(sys.argv) < 3:
-		print("download -p ticker | -e ticker")
-		print("\t -p download price history")
-		print("\t -e download earning history")
-
-	if sys.argv[1] == '-p':		
-		for ticker in sys.argv[2:]:
-			download_price_history(ticker)
-
-	elif sys.argv[1] == '-e':
-		for ticker in sys.argv[2:]:
-			download_earning_history(ticker)
-
-	else:
-		print("download -p ticker | -e ticker")
-		print("\t -p download price history")
-		print("\t -e download earning history")
+	download_earning_schedule('2016-Dec-01')
