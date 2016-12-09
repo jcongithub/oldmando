@@ -16,6 +16,10 @@ if __name__ == '__main__':
 			## download prices			
 			download_price_history('ashr')
 			download_price_history('^ssec')
+		elif(sys.argv[1] == '-h'):
+			print('ashr [-d]')
+			print('\t -d download history price data')
+			sys.exit()
 
 	pd.options.display.width = 1000
 	ashr_df = pd.read_csv('data/ashr.price.csv')
@@ -35,7 +39,6 @@ if __name__ == '__main__':
 			date = index
 			ashr = row['Close']
 			ssei = ssei_df.ix[index]['Close']
-			print("{} {} {}".format(index, ashr, ssei))
 
 			history.append({'date' : date,
 							'ashr' : ashr,
@@ -43,22 +46,23 @@ if __name__ == '__main__':
 		except:
 			print('')
 
+	#calculte 'diff' and 'percentage'
 	df = pd.DataFrame(history)
-
 	df['diff'] = df['ssei'] - df['ashr']
 	df['perc'] = (df['ashr']/df['ssei']) * 100
-
-	print(df[['date', 'ssei', 'ashr', 'diff', 'perc']])
-
 	df = df.set_index('date')
 	
-	df = df['2016-01-01':]
-	
-	print(df.describe())
-	df1 = df[['ashr']]
-	df1['ssei'] = df['ssei'] * 0.01
-	#df1['ashr'] = df1['ashr'] + (df1.iloc[0]['ssei'] - df1.iloc[0]['ashr'])
-	df1['ashr'] = df1['ashr'] + 6
 
-	df1.plot().grid(True)
+	#Draw chart
+	df = df['2016-01-01':][['ashr', 'ssei', 'perc']]
+	ashr_mean = df['ashr'].mean()
+	ssei_mean = df['ssei'].mean()
+	perc_mean = df['perc'].mean()
+	print(df)
+	print('ashr mean price:{} sseu mean price:{} perc mean:{}'.format(ashr_mean, ssei_mean, perc_mean))
+	print(df.describe())
+	df['ashr'] = df['ashr'] / ashr_mean
+	df['ssei'] = df['ssei'] / ssei_mean
+
+	df.plot().grid(True)
 	plt.show()

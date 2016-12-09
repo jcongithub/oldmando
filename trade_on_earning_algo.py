@@ -7,8 +7,12 @@ from datetime import datetime
 from datetime import timedelta
 #from printer import print_dataframe_as_table
 import glob
-from download import download_price_history
-from download import download_earning_history
+from downloader import download_price_history
+from downloader import download_earning_history
+from downloader import download_history
+from downloader import download_earning_schedule
+
+stock = {}
 
 is_debug = False
 def debug(msg):
@@ -49,7 +53,7 @@ def algo_trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_da
 				sell_price = real_sell['Close']
 				buy_price  = real_buy['Close']
 				profit     = sell_price - buy_price
-
+				profit2    = (profit / buy_price) * 100
 				list_trades.append({'earning_date' : earning_date,
 									'month'        : month,
 									'buy_date'     : real_buy.name,
@@ -57,12 +61,13 @@ def algo_trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_da
 					 				'sell_date'    : real_sell.name,
 					 				'sell_price'   : sell_price,
 					 				'profit'       : profit,
+					 				'profit2'	   : profit2,
 					 				'buy_days'     : buy_before_earning_days,
 					 				'sell_days'    : sell_after_earning_days})
 
 	return list_trades
 
-def trade_on_earning(ticker, buy_days_range, sell_days_range):
+def trade_on_earning(ticker, buy_days_range=15, sell_days_range=15):
 	ph = pd.read_csv('data/' + ticker + '.price.csv')
 	eh = pd.read_csv('data/' + ticker + '.earning.csv')
 
@@ -272,86 +277,62 @@ def group_summery(group):
 		'num_tie' : [len(tied_trades)],
 		})
 
+def tickers():
+	tickers = ['aeo', 'msn', 'csco']
+	print(tickers)
+
+def summery(trades):
+	cases = trades.groupby(['buy_days', 'sell_days'])
+	summery = cases.apply(group_summery)
+	#print(summery.sort_values(['num_win'], ascending=False).head(10))
+	return summery.sort_values(['num_win'], ascending=False)
 
 
-if __name__ == '__main__':
-	pd.options.display.width = 1000
-	BUY_DAYS = 15
-	SELL_DAYS = 15
-	GOAL = 15
-
-	if(len(sys.argv) < 2):
-		print_command_line_exit()
-
-	if(sys.argv[1][0] != '-'):
-		tickers = sys.argv[1:]
-		opt = []
-	else:
-		opt = sys.argv[1][1:]
-		check_operations(opt)
-		tickers = sys.argv[2:]		
-
-	if(len(tickers) == 0):
-		print_command_line_exit()
+def backtest(ticker, buy_days=15, sell_days=15):
+	#generate test trades
+	trades = trade_on_earning(ticker, buy_days, sell_days)
+	trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+	trades.to_csv('data/' + ticker + ".trades.csv")
+	print("generated {} trades".format(len(trades)))
+	return trades;
 
 
-	if 'd' in opt:
-		for ticker in tickers:
-			download_price_history(ticker)
-			download_earning_history(ticker)
-
-	if 't' in opt:
-		for ticker in tickers:
-			df = trade_on_earning(ticker, BUY_DAYS, SELL_DAYS)
-			df = df[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-			df.to_csv('data/' + ticker + ".trades.csv")
-
+def testall(tickers, refresh=False):
+	bests = pd.DataFrame()
 
 	for ticker in tickers:
-		df = pd.read_csv('data/' + ticker + '.trades.csv')
-		print("{} trades".format(len(df)))
-		num_earnings = len(df.drop_duplicates(['earning_date']))
+		if(refresh):
+			download_history(ticker)
 
-		grouped = df.groupby(['buy_days', 'sell_days'])
+		if(refresh):	
+			trades = backtest(ticker)
+		else:
+			trades = load(ticker)
 
-		summery = grouped.apply(group_summery)
+		cases = summery(trades)
+		cases['ticker'] = ticker
+		best = cases.head(1)
+		bests = bests.append(best)
 
-		print(summery.sort_values(['num_win'], ascending=False).head(10))
-		
-		#Get top 5 buy and sell days have most win profit trades in all earning time
-		#print("Top 5 buy/sell days combinations which generate most winning trades on {} earnings".format(num_earnings))
-		#print(df[df.profit > 0].groupby(['buy_days', 'sell_days']).size().sort_values().tail(5))
+	print(bests)
 
-		#print("Top 5 buy/sell days combinations which generate most profit on {} earnings".format(num_earnings))
-		#grouped = df.groupby(['buy_days', 'sell_days'])
-		#print(grouped.agg({'profit':sum}))
-		#print(grouped.agg({'profit':lambda x : sum(x > 0)}))
-		#print(grouped.reset_index())
+def load(ticker):
+	trades = pd.read_csv('data/' + ticker + ".trades.csv")
+	prices = pd.read_csv('data/' + ticker + ".price.csv")
+	earnings = pd.read_csv('data/' + ticker + ".earning.csv")
 
-		#print(df.sort(['buy_days', 'sell_days']))
+	print("{} {} trades {} prices {} earnings".format(ticker, len(trades), len(prices), len(earnings)))
+	global stock
+	stock = {'ticker' : ticker,
+			 'trades' : trades,
+			 'prices' : prices,
+			 'earnings': earnings
+			}
+	return trades	
 
-		#df1 = df1[['month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price', 'sell_price', 'profit']]
-		#
-
-		
-		#find_best_algo_params2(df, BUY_DAYS, SELL_DAYS, GOAL)
-
-
-
-
-
-
-#	find_stocks_meet_goal2(BUY_DAYS, SELL_DAYS, GOAL)
-	#find_best_algo_params2('data/AJG.trades.csv', BUY_DAYS, SELL_DAYS, GOAL)
+def earning_schedule(date):
+	tickers = download_earning_schedule(date)
+	return [x.lower() for x in tickers]
 
 
-#	run_all(BUY_DAYS, SELL_DAYS)
-#	
-
-
-	#df = pd.read_csv("data/MSFT.earning.csv")
-	#df['Month'] = df.apply(lambda row: row['Period Ending'][:3] ,axis=1)
-	#print(df)
-	#print(df.groupby(['Month']).agg('count'))
-
-	
+pd.options.display.width = 1000

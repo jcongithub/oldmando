@@ -46,11 +46,12 @@ def download_earning_schedule(date):
 
 	df = pd.DataFrame(records)	
 	print(df)
+	return df['ticker'].tolist()
 
 
 
 def download_earning_history(ticker):
-	print('Downloading earning history for {}'.format(ticker))
+	print('downloading earning history for {}'.format(ticker))
 
 	base_url = 'http://zacks.thestreet.com/tools/earnings_announcements_company.php'
 	params = {'ticker':ticker, 'recordsToDisplay':100, 'recordsPerPage':100}
@@ -116,7 +117,6 @@ def content_to_file(file_path, content):
 		f.write(content)
 
 def download_history(ticker):
-	print('Downloading: {}'.format(ticker))
 	download_price_history(ticker)
 	download_earning_history(ticker)
 
