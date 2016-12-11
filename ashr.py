@@ -6,7 +6,7 @@ import sys
 from datetime import datetime
 from datetime import timedelta
 import glob
-from download import download_price_history
+from downloader import download_price_history
 
 is_debug = False
 
@@ -17,6 +17,7 @@ if __name__ == '__main__':
 			download_price_history('ashr')
 			download_price_history('^ssec')
 		elif(sys.argv[1] == '-h'):
+			print('show ashr and ^ssec history price')
 			print('ashr [-d]')
 			print('\t -d download history price data')
 			sys.exit()

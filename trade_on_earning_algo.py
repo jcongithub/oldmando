@@ -297,10 +297,15 @@ def backtest(ticker, buy_days=15, sell_days=15):
 	return trades;
 
 
+def test_earning_on_date(date):
+	tickers = earning_schedule(date)
+	testall(tickers, True)
+
 def testall(tickers, refresh=False):
 	bests = pd.DataFrame()
 
 	for ticker in tickers:
+		print("")
 		if(refresh):
 			download_history(ticker)
 
@@ -334,5 +339,12 @@ def earning_schedule(date):
 	tickers = download_earning_schedule(date)
 	return [x.lower() for x in tickers]
 
+
+def thelp():
+	command_summery_format = "{:<35}{}"
+	print(command_summery_format.format('testall(tickers, refresh=False)', 'find best buy sell days for given securities'))
+	print(command_summery_format.format('test_earning_on_date(date)', 'find best buy sell days for all securities which will announce the earning on given date'))
+	print(command_summery_format.format('earning_schedule(date)', 'returns a list of securities will announce the earnign on given date'))
+	print('\t date:2016-Dec-06')
 
 pd.options.display.width = 1000
