@@ -44,7 +44,7 @@ def download_earning_schedule(date):
 
 		records.append(record)
 
-	df = pd.DataFrame(records)	
+	df = pd.DataFrame(records)
 	print(df)
 	return df['ticker'].tolist()
 
@@ -88,7 +88,7 @@ def download_earning_history(ticker):
 			line = line + tds[2].text.strip() + ','
 			line = line + tds[3].text.strip() + ','
 			line = line + tds[4].text.strip() + ','
-			line = line + tds[5].text.strip()
+			line = line + tds[5].text.strip().replace(',', '')
 
 
 		f.write(line + "\n")
