@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="container">
+	<div class="text-center" style="font-size:30px">Your local time</div>
+	<div id = "NewYork" class="text-center" style="font-size:60px"></div>
+	<table class="table table-bordered">
+		<tr>
+			<td class="text-center">
+				<div>Los Angeles</div>
+				<div id="LosAngeles"></div>
+			</td>
+			<td class="text-center">
+				<div>London</div>
+				<div id="London"></div>
+			</td>
+			<td class="text-center">
+				<div>Paris</div>
+				<div id="Paris"></div>
+			</td>
+			<td class="text-center">
+				<div>Bejing</div>
+				<div id="Bejing"></div>
+			</td>
+		</tr>
+	</table>
+</div>
+<script>
+	var myVar = setInterval(showTime, 1000);
+	function showTime() {
+    	var d = new Date();
+
+    	document.getElementById('NewYork').innerHTML = formatTime('NewYork', d);;
+    	document.getElementById('LosAngeles').innerHTML = formatTime('LosAngeles', d);;
+    	document.getElementById('London').innerHTML = formatTime('London', d);
+    	document.getElementById('Paris').innerHTML = formatTime('Paris', d);
+    	document.getElementById('Bejing').innerHTML = formatTime('Bejing', d);
+	}
+
+	function formatTime(timezone, time){
+    	var h = time.getHours();
+    	var m = time.getMinutes();
+    	var s = time.getSeconds();
+    	m = checkTime(m);
+    	s = checkTime(s);
+    	
+    	var time = h + ":" + m + ":" + s;
+    	console.log('return ' + time);
+    	return time;
+	}
+
+	function checkTime(i) {
+		if(i < 10) { i = "0" + i};
+		return i;
+	}	
+</script>
+</body>
+</html>
