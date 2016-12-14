@@ -290,17 +290,12 @@ def summery(trades):
 	return summery.sort_values(['num_win'], ascending=False)
 
 
-#def backtest(ticker, buy_days=15, sell_days=15):
-#	#generate test trades
-#	trades = trade_on_earning(ticker, buy_days, sell_days)
-#	trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-#	trades.to_csv('data/' + ticker + ".trades.csv")
-#	return trades;
-
-
 def test_earning_on_date(date):
 	tickers = earning_schedule(date)
-	testall(tickers, True)
+	if(len(tickers) == 0):
+		print ("no company announce earning on {}".format(date))
+	else:
+		testall(tickers, True)
 
 def testall(tickers, refresh=False):
 	bests = pd.DataFrame()

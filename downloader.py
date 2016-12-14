@@ -19,6 +19,8 @@ def download_earning_schedule(date):
 	txt = response.text	
 	soup = BeautifulSoup(txt, 'html.parser')
 	tables = soup.find_all('table', {'id' : 'ECCompaniesTable'})
+	if(len(tables) == 0):
+		return {};
 
 	trs = tables[0].find_all('tr')
 
@@ -121,4 +123,5 @@ def download_history(ticker):
 	download_earning_history(ticker)
 
 if __name__ == '__main__':
-	download_earning_schedule('2016-Dec-01')
+	list = download_earning_schedule('2016-Dec-17')
+	print("tickes:{}".format(list))
