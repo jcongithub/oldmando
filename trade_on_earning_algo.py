@@ -82,10 +82,12 @@ def trade_on_earning(ticker, buy_days_range=15, sell_days_range=15):
 	for sell_days in range(sell_days_range):
 		for buy_days in range(buy_days_range):
 			trades = algo_trade_on_earning(ph, eh, -buy_days, sell_days)
+
 			list_trades.extend(trades)
 
-	df = pd.DataFrame(list_trades)
-	return df
+	trades = pd.DataFrame(list_trades)
+	trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+	return trades
 
 def performance(trades):
 	df = pd.DataFrame(trades)
@@ -288,13 +290,12 @@ def summery(trades):
 	return summery.sort_values(['num_win'], ascending=False)
 
 
-def backtest(ticker, buy_days=15, sell_days=15):
-	#generate test trades
-	trades = trade_on_earning(ticker, buy_days, sell_days)
-	trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-	trades.to_csv('data/' + ticker + ".trades.csv")
-	print("generated {} trades".format(len(trades)))
-	return trades;
+#def backtest(ticker, buy_days=15, sell_days=15):
+#	#generate test trades
+#	trades = trade_on_earning(ticker, buy_days, sell_days)
+#	trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+#	trades.to_csv('data/' + ticker + ".trades.csv")
+#	return trades;
 
 
 def test_earning_on_date(date):
@@ -305,19 +306,25 @@ def testall(tickers, refresh=False):
 	bests = pd.DataFrame()
 
 	for ticker in tickers:
-		print("")
+		print("Back test {}".format(ticker))
 		if(refresh):
 			download_history(ticker)
 
-		if(refresh):	
-			trades = backtest(ticker)
+		trades = None
+		if(refresh):
+			try:	
+				trades = trade_on_earning(ticker)
+			except:
+				print("Failed to do back test for {}".format(ticker))
+				print("Unexpected error:", sys.exc_info()[0])
 		else:
 			trades = load(ticker)
 
-		cases = summery(trades)
-		cases['ticker'] = ticker
-		best = cases.head(1)
-		bests = bests.append(best)
+		if(trades is not None):
+			cases = summery(trades)
+			cases['ticker'] = ticker
+			best = cases.head(1)
+			bests = bests.append(best)
 
 	print(bests)
 
