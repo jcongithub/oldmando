@@ -122,6 +122,36 @@ def download_history(ticker):
 	download_price_history(ticker)
 	download_earning_history(ticker)
 
+def download_sp500_stoct_list():
+	url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+	response = requests.get(url)
+	txt = response.text	
+	soup = BeautifulSoup(txt, 'html.parser')
+	tables = soup.find_all('table')
+	trs = tables[0].find_all("tr")
+	print(len(trs))
+	print(trs[0])
+
+	list = [];
+
+	for i in range(1, len(trs)):
+		tds = trs[i].find_all("td")
+		ticker = tds[0].text.strip()
+		security = tds[1].text.strip()
+		sector = tds[3].text.strip()
+		industry = tds[4].text.strip()
+
+		print("{} | {} | {} | {}".format(ticker, security, sector, industry))
+
+		company = {'ticker':ticker, 'security':security, 'sector':sector, 'industry':industry}
+		list.append(company)
+
+	return list;
+
+
+
 if __name__ == '__main__':
-	list = download_earning_schedule('2016-Dec-17')
-	print("tickes:{}".format(list))
+#	list = download_earning_schedule('2016-Dec-17')
+#	print("tickes:{}".format(list))
+	list = download_sp500_stoct_list()
+	print(list)

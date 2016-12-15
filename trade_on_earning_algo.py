@@ -11,6 +11,7 @@ from downloader import download_price_history
 from downloader import download_earning_history
 from downloader import download_history
 from downloader import download_earning_schedule
+from downloader import download_sp500_stoct_list
 
 stock = {}
 
@@ -316,12 +317,27 @@ def testall(tickers, refresh=False):
 			trades = load(ticker)
 
 		if(trades is not None):
+			file_path = 'data/' + ticker + '.trades.csv'
+			trades.to_csv(file_path)
 			cases = summery(trades)
 			cases['ticker'] = ticker
 			best = cases.head(1)
 			bests = bests.append(best)
 
 	print(bests)
+
+def test_snp500():
+	company_list = download_sp500_stoct_list()
+	tickers = []
+
+	for company in company_list:
+		ticker = company['ticker']
+		tickers.append(ticker)
+
+	print("Total {} tickers".format(len(tickers)))
+
+	testall(tickers, True)
+
 
 def load(ticker):
 	trades = pd.read_csv('data/' + ticker + ".trades.csv")
