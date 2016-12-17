@@ -365,4 +365,17 @@ def thelp():
 	print(command_summery_format.format('earning_schedule(date)', 'returns a list of securities will announce the earnign on given date'))
 	print('\t date:2016-Dec-06')
 
+def find_best_month(ticker):
+	trades = pd.read_csv('data/' + ticker + '.trades.csv')
+	groups = trades.groupby(['month', 'buy_days', 'sell_days'])
+	summery = groups.apply(group_summery)
+	#print(summery.sort_values(by=['num_win'], ascending=False).head(5))
+	print(summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False))			
+
 pd.options.display.width = 1000
+#
+#print(trades)
+#
+#
+#print(summery)
+#print()
