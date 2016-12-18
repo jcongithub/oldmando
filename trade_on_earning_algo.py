@@ -5,13 +5,15 @@ import sys
 
 from datetime import datetime
 from datetime import timedelta
-#from printer import print_dataframe_as_table
+from os import listdir
+from os.path import isfile, join
+
 import glob
-from downloader import download_price_history
 from downloader import download_earning_history
-from downloader import download_history
 from downloader import download_earning_schedule
-from downloader import download_sp500_stoct_list
+from downloader import download_sp500_company_list
+from downloader import get_company_earnings_date
+from downloader import get_stock_last_price
 
 stock = {}
 
@@ -298,23 +300,14 @@ def test_earning_on_date(date):
 	else:
 		testall(tickers, True)
 
-def testall(tickers, refresh=False):
+
+def generate_test_trades(tickers, refresh=False):
 	bests = pd.DataFrame()
 
 	for ticker in tickers:
 		print("Back test {}".format(ticker))
-		if(refresh):
-			download_history(ticker)
 
-		trades = None
-		if(refresh):
-			try:	
-				trades = trade_on_earning(ticker)
-			except:
-				print("Failed to do back test for {}".format(ticker))
-				print("Unexpected error:", sys.exc_info()[0])
-		else:
-			trades = load(ticker)
+		trades = trades = load(ticker)
 
 		if(trades is not None):
 			file_path = 'data/' + ticker + '.trades.csv'
@@ -365,17 +358,78 @@ def thelp():
 	print(command_summery_format.format('earning_schedule(date)', 'returns a list of securities will announce the earnign on given date'))
 	print('\t date:2016-Dec-06')
 
-def find_best_month(ticker):
-	trades = pd.read_csv('data/' + ticker + '.trades.csv')
-	groups = trades.groupby(['month', 'buy_days', 'sell_days'])
-	summery = groups.apply(group_summery)
-	#print(summery.sort_values(by=['num_win'], ascending=False).head(5))
-	print(summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False))			
+def find_tickers_with_all_win_months(ticker_list, refresh=False):
+	if(refresh):
+		generate_test_trades(ticker_list, True)
+
+	tickers_with_all_win_months = pd.DataFrame()
+
+	for ticker in ticker_list:
+		trades_file = 'data/' + ticker + ".trades.csv"
+		if (isfile(trades_file)):
+			print(trades_file)
+			trades = pd.read_csv('data/' + ticker + '.trades.csv')
+			groups = trades.groupby(['month', 'buy_days', 'sell_days'])
+			summery = groups.apply(group_summery)
+			all_win_months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False)
+			if(len(all_win_months) > 0):
+				all_win_months['ticker'] = ticker
+				print(all_win_months)
+				tickers_with_all_win_months = tickers_with_all_win_months.append(all_win_months)
+
+	return tickers_with_all_win_months
+
+
+def calculate_buy_sell_date(row):
+	if(row['next_earnings'] == 'n/a'):
+		row['buy_date'] = 'n/a'
+		row['sell_date'] = 'n/a'
+	else:
+		next_earnings_date = datetime.strptime(row['next_earnings'], '%Y%m%d')
+		row['buy_date'] =  (next_earnings_date + timedelta(days=row['buy_days'])).strftime('%Y%m%d')
+		row['sell_date'] = (next_earnings_date + timedelta(days=row['sell_days'])).strftime('%Y%m%d')
+
+	return row
+
 
 pd.options.display.width = 1000
-#
-#print(trades)
-#
-#
-#print(summery)
-#print()
+#ticker_list = download_sp500_symbol_list()
+#tickers_with_all_win_months = find_tickers_with_all_win_months(ticker_list)
+#print(tickers_with_all_win_months.drop_duplicates(subset=['ticker'], keep='first'))
+
+#tickers_with_all_win_months = tickers_with_all_win_months.reset_index()
+#tickers_with_all_win_months.to_csv('data/tickers_with_all_win_months.csv')
+
+tickers_with_all_win_months = pd.read_csv('data/tickers_with_all_win_months.csv')
+
+#only keep the best performance of buy-sell-days for each earnings 
+wining_months = tickers_with_all_win_months.drop_duplicates(subset=['ticker', 'month'], keep='first')
+
+#return only on Dec and wining time > 6
+min_num_wins = 6
+min_profit = 4.0
+earnings_period = 'Nov'
+current_year = '2016'
+current_earnings_period = earnings_period + " " + current_year
+
+wining_months = wining_months[(wining_months.month==earnings_period) & (wining_months.num_win > min_num_wins) & (wining_months.mean_profit > min_profit)]
+print(wining_months)
+
+#convert ticker to lowercase
+wining_months['ticker'] = wining_months['ticker'].apply(lambda x : x.lower())
+print(wining_months)
+#add earnings date
+wining_months['next_earnings'] = wining_months['ticker'].apply(lambda x : get_company_earnings_date(x, current_earnings_period))
+print(wining_months)
+
+#add latest close price
+wining_months['price'] = wining_months['ticker'].apply(lambda x : get_stock_last_price(x))
+#calculate holdig days
+wining_months['holding_days'] = wining_months['sell_days'] - wining_months['buy_days']
+
+#Calculate buy/sell dates
+wins = wining_months.apply(calculate_buy_sell_date, axis=1)
+
+
+print(wins.sort_values(by=['next_earnings']))
+
