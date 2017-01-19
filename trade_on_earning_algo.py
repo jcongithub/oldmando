@@ -255,27 +255,21 @@ def find_tickers_with_all_win_months(ticker_list, earning_schedule):
 
 	
 	return tickers_with_all_win_months
-def test_sp500(create_trades=False):
-	skipped = []
-	min_history = 6
-	company_list = sp500()
-	tickers = company_list.index.tolist()
-	print(tickers)
 
+def find_all_win_months(tickers):
 	for ticker in tickers:
-		print("Test {}".format(ticker))
-		prices = price(ticker)
-		earnings = earning(ticker)
-
-		if((prices is not None) and (earnings is not None)):
-			if(create_trades):
-				create_test_trades(ticker)
-
+		trade_file = trade_file_name(ticker)
+		if(isfile(trade_file)):
+			trades = pd.read_csv(trade_file)
+			groups = trades.groupby(['month', 'buy_days', 'sell_days'])
+			summery = groups.apply(group_summery)
+			print(summery)
+			all_win_months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False)
+			print(all_win_months)
+			return all_win_months;
 		else:
-			print("skip {} due to no enought history data".format(ticker))
-			skipped.append(ticker)
-
-	print("Following tickers skipped. {}".format(skipped))
+			print("No trade file:{}".format(ticker))
+			return None
 
 def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 	skipped = []
@@ -297,22 +291,22 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 			print("\tPrice " + history_df_header(ph))
 			print("\tEarning " + history_df_header(eh))
 
-			if ((len(ph) <= 0) or (len(eh) <= 0)):
-				print("No enough history data for creating test trades")
-				return None
+			if ((len(ph) > 0) and (len(eh) > 0)):
+				list_trades = []
+				for sell_days in range(sell_days_range):
+					for buy_days in range(buy_days_range):
+						trades = trade_on_earning(ph, eh, -buy_days, sell_days)
 
-			list_trades = []
-			for sell_days in range(sell_days_range):
-				for buy_days in range(buy_days_range):
-					trades = trade_on_earning(ph, eh, -buy_days, sell_days)
+						list_trades.extend(trades)
 
-					list_trades.extend(trades)
-
-			trades = pd.DataFrame(list_trades)
-			trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-			trades.to_csv(trade_file_name(ticker))
-			print("\t{} trades generated".format(len(trades)))
+				trades = pd.DataFrame(list_trades)
+				trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+				trades.to_csv(trade_file_name(ticker))
+				print("\t{} trades generated".format(len(trades)))
 	
+	print("Following tickers were skipped due to no enough history data")
+	print(skipped)
+
 def trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_days):
 	list_trades = []
 	ph_start_date = ph.tail(1).iloc[0].name

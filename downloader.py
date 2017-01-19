@@ -139,6 +139,7 @@ def download_price(tickers):
 				
 		if(isfile(file_path)):
 			os.remove(file_path)
+		print("Cannot download price history data for following tickers:{}".format(error_tickers))
 				
 
 def content_to_file(file_path, content):
