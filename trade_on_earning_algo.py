@@ -20,82 +20,8 @@ from downloader import download_price
 from downloader import download_earning
 
 stock = {}
-
-
-def performance(trades):
-	df = pd.DataFrame(trades)
-#	print(df[['earning_date', 'buy_date', 'sell_date', 'buy_price', 'sell_price', 'profit']])		
-
-	num_wining = df[df.profit > 0]['earning_date'].count()
-	num_losing = df[df.profit < 0]['earning_date'].count()
-	num_tie	   = df[df.profit == 0]['earning_date'].count()
-	profit     = df['profit'].sum()
-
-	summery = {'wining' : num_wining,
-			   'losing' : num_losing,
-			   'tie'    : num_tie,
-			   'profit' : profit}
-
-	return summery
-
-def show_result(algo_return_df):
-	df_winlose = algo_return_df['wining'] - algo_return_df['losing']
-	x = algo_return_df['buy_days'].tolist()
-	y = algo_return_df['sell_days'].tolist()
-	area = 30
-	colors = []
-	for wl in df_winlose:
-		if wl > 10:
-			colors.append('green')
-		elif wl > 0 & wl <10:
-			colors.append('yellow')
-		else:
-			colors.append('red')
-
-
-	plt.scatter(x, y, s=area, c=colors)
-	plt.show()
-
-
-def anlaysis(ticker):
-	ph = pd.read_csv('data/' + ticker + '.price.csv')
-	eh = pd.read_csv('data/' + ticker + '.earning.csv')
-
-	ph = ph.set_index('Date')
-	eh = eh.set_index('Date')
-	
-	debug('{} days price history from {} to {}'.format(len(ph), ph.iloc[len(ph) - 1].name, ph.iloc[0].name))
-	debug("{} earning history from {} to {}".format(len(eh), eh.iloc[len(eh) -1].name, eh.iloc[0].name))
-
-	algo_return_comparison = []
-
-	for sell_days in range(15):
-		for buy_days in range(15):
-			trades = algo_trade_on_earning(ph, eh, -buy_days, sell_days)
-			summery = performance(trades)
-			summery['buy_days'] = -buy_days
-			summery['sell_days'] = sell_days
-			algo_return_comparison.append(summery)
-
-	algo_return_df = pd.DataFrame(algo_return_comparison)
-	algo_return_df.to_csv('data/' + ticker + '.algo.csv')
-
-def play(ticker):
-	df = pd.read_csv('data/' + ticker + '.algo.csv')
-	print(df)
-	print(df[df.wining > 20])
-
-def run_all(buy_days, sell_days):
-	df = pd.read_csv('sp500.csv')
-	print(df['Ticker'])
-	for ticker in df['Ticker']:
-		print("Run algo on {} ".format(ticker), end="")
-		try:
-			test_algo_trade_on_earning(ticker, buy_days, sell_days)
-			print("Ok")
-		except:
-
-			print("Failed")
+TODAY = datetime.now().strftime('%Y-%m-%d')
+print("TODAY:{}".format(TODAY))
 
 def find_stocks_meet_goal(buy_day_range, sell_day_range, goal):
 	good_stocks = []
@@ -186,10 +112,6 @@ def find_best_algo_params2(trades, buy_day_range, sell_day_range, goal):
 	return results
 
 
-def print_command_line_exit():
-	print("trade_on_earning_algo [-d] tickers")
-	exit()
-
 def check_operations(opt):
 	supported_opts = 'dt'
 	for c in opt[1:]:
@@ -212,10 +134,6 @@ def group_summery(group):
 		'num_tie' : [len(tied_trades)],
 		})
 
-def tickers():
-	tickers = ['aeo', 'msn', 'csco']
-	print(tickers)
-
 def summery(trades):
 	cases = trades.groupby(['buy_days', 'sell_days'])
 	summery = cases.apply(group_summery)
@@ -231,39 +149,28 @@ def test_earning_on_date(date):
 
 
 
-def test_sp500(earning_month='Dec'):
+def test_sp500(create_trades=False):
+	skipped = []
 	min_history = 6
 	company_list = sp500()
 	tickers = company_list.index.tolist()
-	tickers = [ticker for ticker in tickers if ticker.isalpha()]
 	print(tickers)
 
 	for ticker in tickers:
 		print("Test {}".format(ticker))
 		prices = price(ticker)
 		earnings = earning(ticker)
-		earnings = earnings[earnings['period'].apply(lambda value : value[:3] == earning_month)]
-		if len(earnings) >= min_history:
-			print(earnings)
+
+		if((prices is not None) and (earnings is not None)):
+			if(create_trades):
+				create_test_trades(ticker)
+
 		else:
-			print("skip {} due to no enought history earning data".format(ticker))
+			print("skip {} due to no enought history data".format(ticker))
+			skipped.append(ticker)
+
+	print("Following tickers skipped. {}".format(skipped))
 			
-
-
-
-def load(ticker):
-	trades = pd.read_csv(trade_file_name(ticker))
-	prices = price(ticker)
-	earnings = earning(ticker)
-
-	print("{} {} trades {} prices {} earnings".format(ticker, len(trades), len(prices), len(earnings)))
-	global stock
-	stock = {'ticker' : ticker,
-			 'trades' : trades,
-			 'prices' : prices,
-			 'earnings': earnings
-			}
-	return trades	
 
 
 def calculate_buy_sell_date(row):
@@ -353,14 +260,8 @@ def find_tickers_with_all_win_given_month(date, generate_trades=False):
 	print(tickers)
 	return tickers
 
-def find_tickers_with_all_win_months(ticker_list, earning_schedule, generate_trades=False):
-	if(generate_trades):
-		[download_price(ticker) for ticker in ticker_list]	
-		[download_earning(ticker) for ticker in ticker_list]
-		[create_test_trades(ticker) for ticker in ticker_list]
-	
+def find_tickers_with_all_win_months(ticker_list, earning_schedule):	
 	tickers_with_all_win_months = pd.DataFrame()
-
 	for ticker in ticker_list:
 		print("Find all win month for {}".format(ticker))
 		trade_file = trade_file_name(ticker)
@@ -380,9 +281,21 @@ def create_test_trades(ticker, buy_days_range=15, sell_days_range=15):
 	print("Generating test trades for " + ticker)
 	ph = price(ticker)
 	eh = earning(ticker)
+	if((ph is None) or (eh is None)):
+		print("No history data for creating test trades")
+		return None
+
+	#Remove future earning date from earning history
+	eh.reset_index(inplace=True)
+	eh = eh[eh['date'].apply(lambda x : x < TODAY)]
+	eh.set_index(['date'], inplace=True)
+
 	print("\tPrice " + history_df_header(ph))
 	print("\tEarning " + history_df_header(eh))
 
+	if ((len(ph) <= 0) or (len(eh) <= 0)):
+		print("No enough history data for creating test trades")
+		return None
 
 	list_trades = []
 	for sell_days in range(sell_days_range):

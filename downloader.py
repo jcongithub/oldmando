@@ -41,10 +41,11 @@ def sp500():
 	return pd.read_csv(file_name, index_col=['ticker'])
 
 def read_history_data(file_name):
+	history = None
 	if(isfile(file_name)):
 		history = pd.read_csv(file_name, index_col=['date'])
 	else:
-		history = pd.DataFrame()
+		print("History data not found at {}".format(file_name))
 	return history
 
 def history_df_header(e):
@@ -54,13 +55,13 @@ def history_df_header(e):
 		return 'records:0'
 
 def merge_df(p1, p2):
-	if(len(p2) > 0):
-		pm = p1.merge(p2, on=p1.columns.tolist(), left_index=True, right_index=True, how='outer')
-	else:
-		pm = p1;
+	if p2 == None:
+		return p1
+	if len(p2) == 0:
+		return p1
 
-	return pm
-
+	return p1.merge(p2, on=p1.columns.tolist(), left_index=True, right_index=True, how='outer')
+	
 
 #####################################################################################################
 ##   Download stock price history, stock earnings history
@@ -98,45 +99,47 @@ def download_earning(tickers):
 					records.append(record)
 
 		e1 = pd.DataFrame(records).set_index(['date'])
-		print("--------------------------------------------")
-		print(e1)
-		print(ticker)
 		e2 = earning(ticker)
-		print("===========================================")
-		print(e2)
-		print(ticker)
+		
 		em = merge_df(e1, e2)
-		print("+++++++++++++++++++++++++++++++++++++++++++")
-		print(em)
-		print(ticker)
 		em.to_csv(earning_file_name(ticker))
 
 
 def download_price(tickers):
+	error_tickers = []
 	for ticker in tickers:
-		print('Downloading price history: {}'.format(ticker))
-		today = datetime.now()
-		url = 'http://chart.finance.yahoo.com/table.csv?a=0&b=1&c=1962&g=d&ignore=.csv'
-		params = {'s' : ticker,
-				  'd' : today.month - 1,
-				  'e' : today.day,
-				  'f' : today.year}
-
-		response = requests.get(url, params=params)
-
 		file_path = 'data/' + ticker + '.price.tmp'
-		
-		content_to_file(file_path, response.text)
-		
-		p = pd.read_csv(file_path)
-		p.columns = [x.lower() for x in p.columns]
-		p = p.set_index(['date'])
-		p2 = price(ticker)
-		pm = merge_df(p, p2)	
-		pm.to_csv(price_file_name(ticker))
+		price_file = price_file_name(ticker) 
+		try:
+			print('Downloading price history: {}'.format(ticker))
+			today = datetime.now()
+			url = 'http://chart.finance.yahoo.com/table.csv?a=0&b=1&c=1962&g=d&ignore=.csv'
+			params = {'s' : ticker,
+					  'd' : today.month - 1,
+					  'e' : today.day,
+					  'f' : today.year}
 
+			response = requests.get(url, params=params)
 
+			
+			content_to_file(file_path, response.text)
+			
+			p = pd.read_csv(file_path)
+			p.columns = [x.lower() for x in p.columns]
+			p = p.set_index(['date'])
+			p2 = price(ticker)
+			pm = merge_df(p, p2)	
+			pm.to_csv(price_file)
 
+			os.remove(file_path)
+		except:
+			error_tickers.append(ticker)
+			if(isfile(price_file)):
+				os.remove(price_file)
+				
+		if(isfile(file_path)):
+			os.remove(file_path)
+				
 
 def content_to_file(file_path, content):
 	os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -206,5 +209,6 @@ def download_sp500_company_list():
 
 	df = pd.DataFrame(list)
 	df['ticker'] = df['ticker'].apply(lambda x : x.lower())
+	df = df[df['ticker'].apply(lambda x : x.isalpha())]
 	df.to_csv('data/sp500.csv', index=False)
 	return df;
