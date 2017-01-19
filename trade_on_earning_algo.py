@@ -149,27 +149,6 @@ def test_earning_on_date(date):
 
 
 
-def test_sp500(create_trades=False):
-	skipped = []
-	min_history = 6
-	company_list = sp500()
-	tickers = company_list.index.tolist()
-	print(tickers)
-
-	for ticker in tickers:
-		print("Test {}".format(ticker))
-		prices = price(ticker)
-		earnings = earning(ticker)
-
-		if((prices is not None) and (earnings is not None)):
-			if(create_trades):
-				create_test_trades(ticker)
-
-		else:
-			print("skip {} due to no enought history data".format(ticker))
-			skipped.append(ticker)
-
-	print("Following tickers skipped. {}".format(skipped))
 			
 
 
@@ -276,40 +255,64 @@ def find_tickers_with_all_win_months(ticker_list, earning_schedule):
 
 	
 	return tickers_with_all_win_months
+def test_sp500(create_trades=False):
+	skipped = []
+	min_history = 6
+	company_list = sp500()
+	tickers = company_list.index.tolist()
+	print(tickers)
 
-def create_test_trades(ticker, buy_days_range=15, sell_days_range=15):
-	print("Generating test trades for " + ticker)
-	ph = price(ticker)
-	eh = earning(ticker)
-	if((ph is None) or (eh is None)):
-		print("No history data for creating test trades")
-		return None
+	for ticker in tickers:
+		print("Test {}".format(ticker))
+		prices = price(ticker)
+		earnings = earning(ticker)
 
-	#Remove future earning date from earning history
-	eh.reset_index(inplace=True)
-	eh = eh[eh['date'].apply(lambda x : x < TODAY)]
-	eh.set_index(['date'], inplace=True)
+		if((prices is not None) and (earnings is not None)):
+			if(create_trades):
+				create_test_trades(ticker)
 
-	print("\tPrice " + history_df_header(ph))
-	print("\tEarning " + history_df_header(eh))
+		else:
+			print("skip {} due to no enought history data".format(ticker))
+			skipped.append(ticker)
 
-	if ((len(ph) <= 0) or (len(eh) <= 0)):
-		print("No enough history data for creating test trades")
-		return None
+	print("Following tickers skipped. {}".format(skipped))
 
-	list_trades = []
-	for sell_days in range(sell_days_range):
-		for buy_days in range(buy_days_range):
-			trades = trade_on_earning(ph, eh, -buy_days, sell_days)
+def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
+	skipped = []
+	
+	for ticker in tickers:
+		print("Generating test trades for " + ticker)
+		ph = price(ticker)
+		eh = earning(ticker)
 
-			list_trades.extend(trades)
+		if((ph is None) or (eh is None)):
+			print("No history data for {}".fimrat(ticker))
+			skipped.append(ticker)
+		else:
+			#Remove future earning date from earning history
+			eh.reset_index(inplace=True)
+			eh = eh[eh['date'].apply(lambda x : x < TODAY)]
+			eh.set_index(['date'], inplace=True)
 
-	trades = pd.DataFrame(list_trades)
-	trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-	trades.to_csv(trade_file_name(ticker))
-	print("\t{} trades generated".format(len(trades)))
-	return trades
+			print("\tPrice " + history_df_header(ph))
+			print("\tEarning " + history_df_header(eh))
 
+			if ((len(ph) <= 0) or (len(eh) <= 0)):
+				print("No enough history data for creating test trades")
+				return None
+
+			list_trades = []
+			for sell_days in range(sell_days_range):
+				for buy_days in range(buy_days_range):
+					trades = trade_on_earning(ph, eh, -buy_days, sell_days)
+
+					list_trades.extend(trades)
+
+			trades = pd.DataFrame(list_trades)
+			trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+			trades.to_csv(trade_file_name(ticker))
+			print("\t{} trades generated".format(len(trades)))
+	
 def trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_days):
 	list_trades = []
 	ph_start_date = ph.tail(1).iloc[0].name
