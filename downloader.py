@@ -55,7 +55,7 @@ def history_df_header(e):
 		return 'records:0'
 
 def merge_df(p1, p2):
-	if p2 == None:
+	if p2 is None:
 		return p1
 	if len(p2) == 0:
 		return p1
@@ -106,7 +106,7 @@ def download_earning(tickers):
 
 
 def download_price(tickers):
-	error_tickers = []
+	skipped = []
 	for ticker in tickers:
 		file_path = 'data/' + ticker + '.price.tmp'
 		price_file = price_file_name(ticker) 
@@ -131,15 +131,17 @@ def download_price(tickers):
 			pm = merge_df(p, p2)	
 			pm.to_csv(price_file)
 
-			os.remove(file_path)
 		except:
-			error_tickers.append(ticker)
+			skipped.append(ticker)
 			if(isfile(price_file)):
 				os.remove(price_file)
 				
 		if(isfile(file_path)):
 			os.remove(file_path)
-		print("Cannot download price history data for following tickers:{}".format(error_tickers))
+	
+	if(len(skipped) > 0):
+		print("Cannot download price history data for following tickerss")
+		print(skipped)
 				
 
 def content_to_file(file_path, content):
@@ -147,7 +149,7 @@ def content_to_file(file_path, content):
 	with open(file_path, "w") as f:
 		f.write(content)
 
-def download_earning_schedule(date):
+def earning_schedule(date):
 	base_url = 'http://www.nasdaq.com/earnings/earnings-calendar.aspx'
 	params = {'date' : date}
 	response = requests.get(base_url, params=params)

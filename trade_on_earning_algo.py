@@ -9,8 +9,10 @@ from os import listdir
 from os.path import isfile, join
 
 import glob
-from downloader import download_earning_schedule
+from downloader import earning_schedule
 from downloader import download_sp500_company_list
+from downloader import download_price
+from downloader import download_earning
 from downloader import price
 from downloader import earning
 from downloader import sp500
@@ -209,14 +211,15 @@ def get_last_price(tickers):
 	return list.set_index('ticker')
 
 def find_tickers_with_all_win_given_month(date, generate_trades=False):
-	earning_schedule = download_earning_schedule(date)
-	if(len(earning_schedule) == 0):
-		return pd.DataFrame()
+	schedules = earning_schedule(date)
+	if(len(schedules) == 0):
+		print("No earning reort on {}".format(date))
+		return pd.DateFrame()
 
-	earning_schedule['date'] = earning_schedule['date'].apply(lambda x : datetime.strptime(x, '%m/%d/%Y'))
-	print(earning_schedule)
+	schedules['date'] = schedules['date'].apply(lambda x : datetime.strptime(x, '%m/%d/%Y'))
+	print(schedules)
 
-	tickers = find_tickers_with_all_win_months(earning_schedule['ticker'].tolist(), generate_trades);
+	tickers = find_all_win_months(schedules['ticker'].tolist());
 	if(len(tickers) == 0):
 		return pd.DataFrame()
 
@@ -224,23 +227,25 @@ def find_tickers_with_all_win_given_month(date, generate_trades=False):
 	tickers = tickers.set_index('ticker')
 	print(tickers)
 	
-	earning_dates = earning_schedule.loc[:, ['date', 'month', 'ticker']]
+	earning_dates = schedules.loc[:, ['date', 'month', 'ticker']]
 	earning_dates.set_index('ticker', inplace=True,)
 	print(earning_dates)
 
 	tickers=tickers.merge(earning_dates, how='inner', left_index=True, right_index=True)
 	print(tickers)
+
+	tickers = tickers[tickers.apply(lambda row : row['month_y'][:3] == row['month_x'], axis=1)]
+	print(tickers)
+
+
 	tickers['buy_date'] = tickers.apply(lambda row : trading_date(row['date'], row['buy_days'], after_weekend=False), axis=1)
 	tickers['sell_date'] = tickers.apply(lambda row : trading_date(row['date'], row['sell_days'], after_weekend=True), axis=1)
 
 	print(tickers)
-
-	tickers = tickers[tickers[['month_x', 'month_y']].apply(lambda row : row['month_x'] == row['month_y'][0:3], axis=1)]
-	print(tickers)
 	return tickers
 
-def find_tickers_with_all_win_months(ticker_list, earning_schedule):	
-	tickers_with_all_win_months = pd.DataFrame()
+def find_all_win_months(ticker_list):	
+	ticker_month = pd.DataFrame()
 	for ticker in ticker_list:
 		print("Find all win month for {}".format(ticker))
 		trade_file = trade_file_name(ticker)
@@ -248,28 +253,19 @@ def find_tickers_with_all_win_months(ticker_list, earning_schedule):
 			trades = pd.read_csv(trade_file)
 			groups = trades.groupby(['month', 'buy_days', 'sell_days'])
 			summery = groups.apply(group_summery)
-			all_win_months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False)
-			if(len(all_win_months) > 0):
-				all_win_months['ticker'] = ticker
-				tickers_with_all_win_months = tickers_with_all_win_months.append(all_win_months)
+			months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False)
+			
+			if(len(months) > 0):
+				months.reset_index(inplace=True)
+				months['holding'] = months.apply(lambda x : x['sell_days'] - x['buy_days'], axis=1)
+				months.sort_values(['holding'], inplace=True)
+				months = months[~months.duplicated(['month'], keep='first')]
+				months['ticker'] = ticker
+				months.drop(['num_loss', 'num_tie', 'level_3'], axis=1, inplace=True)
+				ticker_month = ticker_month.append(months)
 
 	
-	return tickers_with_all_win_months
-
-def find_all_win_months(tickers):
-	for ticker in tickers:
-		trade_file = trade_file_name(ticker)
-		if(isfile(trade_file)):
-			trades = pd.read_csv(trade_file)
-			groups = trades.groupby(['month', 'buy_days', 'sell_days'])
-			summery = groups.apply(group_summery)
-			print(summery)
-			all_win_months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False)
-			print(all_win_months)
-			return all_win_months;
-		else:
-			print("No trade file:{}".format(ticker))
-			return None
+	return ticker_month
 
 def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 	skipped = []
@@ -304,8 +300,9 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 				trades.to_csv(trade_file_name(ticker))
 				print("\t{} trades generated".format(len(trades)))
 	
-	print("Following tickers were skipped due to no enough history data")
-	print(skipped)
+	if(len(skipped) > 0):
+		print("Following tickers were skipped due to no enough history data")
+		print(skipped)
 
 def trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_days):
 	list_trades = []
