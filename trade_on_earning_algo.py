@@ -20,6 +20,9 @@ from downloader import history_df_header
 from downloader import trade_file_name
 from downloader import download_price
 from downloader import download_earning
+import os
+import csv
+import string
 
 stock = {}
 TODAY = datetime.now().strftime('%Y-%m-%d')
@@ -126,21 +129,14 @@ def group_summery(group):
 	lossing_trades = group[group.profit < 0]
 	tied_trades = group[group.profit == 0]
 
-
 	return pd.DataFrame({
-		'num_win' : [len(wining_trades)],
+		'num_win'     : [len(wining_trades)],
 		'mean_profit' : wining_trades['plp'].mean(),
 		'min_profit'  : wining_trades['plp'].min(),
 		'max_profit'  : wining_trades['plp'].max(),
-		'num_loss': [len(lossing_trades)],
-		'num_tie' : [len(tied_trades)],
+		'num_loss'    : [len(lossing_trades)],
+		'num_tie'     : [len(tied_trades)],
 		})
-
-def summery(trades):
-	cases = trades.groupby(['buy_days', 'sell_days'])
-	summery = cases.apply(group_summery)
-	return summery.sort_values(['num_win'], ascending=False)
-
 
 def test_earning_on_date(date):
 	tickers = earning_schedule(date)
@@ -253,12 +249,13 @@ def find_all_win_months(ticker_list):
 			trades = pd.read_csv(trade_file)
 			groups = trades.groupby(['month', 'buy_days', 'sell_days'])
 			summery = groups.apply(group_summery)
-			months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)].sort_values(by=['mean_profit'], ascending=False)
+
+			months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)]
 			
 			if(len(months) > 0):
 				months.reset_index(inplace=True)
 				months['holding'] = months.apply(lambda x : x['sell_days'] - x['buy_days'], axis=1)
-				months.sort_values(['holding'], inplace=True)
+				months.sort_values('holding', inplace=True)
 				months = months[~months.duplicated(['month'], keep='first')]
 				months['ticker'] = ticker
 				months.drop(['num_loss', 'num_tie', 'level_3'], axis=1, inplace=True)
@@ -357,14 +354,91 @@ def trading_date(date, days, after_weekend=True):
 
 	return d
 
+def trade_schedule(quarter, min_win=5):
+	s = pd.read_csv('data/signals.csv')
+	s = s[(s['month'] == quarter) & (s['num_win'] > min_win)]
+	s.set_index(['ticker'], inplace=True)
+
+	#build earning schedule and current price
+	eps = pd.DataFrame()
+	for ticker in s.index.tolist():
+		e = earning(ticker)
+		p = price(ticker)
+
+		ep = {'ticker'  : ticker,
+			   'edate'  : e.index[0],
+			   'quarter': e.iloc[0]['quarter'],
+			   'price'  : p.iloc[0]['close']}
+
+		eps = eps.append(ep, ignore_index=True)
+	eps.reset_index(inplace=True)
+	eps.set_index(['ticker'], inplace=True)
+
+	#concat the current price and earning schedule
+	s = pd.concat([s, eps], axis=1)
+	
+	s['edate'] = s['edate'].apply(lambda x : datetime.strptime(x, '%Y-%m-%d'))
+	s['buy_date'] = s.apply(lambda row : trading_date(row['edate'], row['buy_days'], after_weekend=False), axis=1)
+	s['sell_date'] = s.apply(lambda row : trading_date(row['edate'], row['sell_days'], after_weekend=True), axis=1)
+	s.sort_values(['edate'], inplace=True)
+	s = s.loc[:, ['edate', 'buy_date', 'sell_date', 'price', 'mean_profit', 'max_profit', 'min_profit', 'num_win', 'holding']]
+	s = s.rename(columns={'buy_date': 'buy@', 'sell_date':'sell@', 'mean_profit':'mean', 'max_profit':'max', 'min_profit':'min', 'num_win':'wins'})
+	s['edate'] = s['edate'].apply(lambda x : datetime.strftime(x, '%m-%d'))
+	s['buy@'] = s['buy@'].apply(lambda x : datetime.strftime(x, '%m-%d'))
+	s['sell@'] = s['sell@'].apply(lambda x : datetime.strftime(x, '%m-%d'))
+	s['pnl'] = s.apply(lambda x : (float(x['price'] * float(x['mean']))/100), axis=1)
+
+	s.sort_values(['buy@'], inplace=True)
+
+	daily_banlance(s)
+
+	return s
+
+def daily_banlance(trades):
+	buys = trades.loc[:, ['buy@', 'price']].sort_values(['buy@'])
+	sells = trades.loc[:, ['sell@', 'price', 'mean']].sort_values(['sell@'])
+	sells['price'] = trades.apply(lambda row : (float(row['price']) + float(row['pnl'])), axis=1) 
+
+	start = datetime.strptime(buys.iloc[0]['buy@'], '%m-%d')
+	end   = datetime.strptime(sells.iloc[-1]['sell@'], '%m-%d')
+
+	p = 0
+	max_p = 0
+
+	while (start <= end):
+		date = datetime.strftime(start, '%m-%d')
+		buy = buys[buys['buy@'] == date]
+		sell = sells[sells['sell@'] == date]
+
+		if(len(buy) > 0):
+			p = p - buy.sum().price
+		
+		if(len(sell) > 0):
+			p = p + sell.sum().price
+
+		print("Date {} Balance {} Buy {} Sell {}".format(date, p, buy.index.tolist(), sell.index.tolist()))
+
+		if (p < max_p):
+			max_p = p
+
+		start = start + timedelta(1)
+
+	print("Pricipal required {} PnL {}".format(-max_p, trades['pnl'].sum()))
+
+def csv2html(csv_file_name, html_file_name):
+	with open(csv_file_name, 'r') as csvfile:
+		table_string = ""
+		reader = csv.reader(csvfile)
+		for row in reader:
+			table_string += "<tr><td>" + "</td><td>".join(row) + "</td>" + "</tr>\n"
+	
+	return '<html><body><table>' + table_string + '</table></body></html>'    
+
 
 pd.options.display.width = 1000
 
-
-
-
-
-
+if __name__ == '__main__':
+	trade_schedule('Dec')	
 
 
 
