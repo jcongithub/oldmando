@@ -26,12 +26,48 @@ def earning_file_name(ticker):
 def price(ticker):
 	return read_history_data(price_file_name(ticker))
 
-def earning(ticker):
+def earning(ticker, start_year='2000', num_years=100):
 	file_name = earning_file_name(ticker)
-	return read_history_data(file_name)
+	e = read_history_data(file_name)
 
-def trade(ticker):
-	return read_history_data(trade_file_name(ticker))	
+	result = pd.DataFrame()
+	e['period2'] = e.apply(lambda row : row['period'][4:], axis=1)
+	start = int(start_year)
+
+
+	if(num_years > 0):
+		start = start
+		end = start + num_years
+	else:
+		end = start + 1
+		start = start + num_years + 1
+
+	for year in range(start, end):
+		a = e[e['period2'] == str(year)]
+		result = result.append(a)
+
+	result.drop('period2', inplace=True, axis=1)
+	return result.sort_index(ascending=False)
+
+
+
+def testtrade(ticker, earning_date_list=None):
+	file_name = trade_file_name(ticker)
+	history = None
+	if(isfile(file_name)):
+		history = pd.read_csv(file_name, index_col=['earning_date'])
+	else:
+		print("No test trade file found at {}".format(file_name))
+
+	if(earning_date_list is None):
+		return history
+
+	filtered = pd.DataFrame()
+	for earning_date in earning_date_list:
+		filtered = filtered.append(history.loc[earning_date])
+
+	return filtered
+
 
 def sp500():
 	file_name = 'data/sp500.csv'

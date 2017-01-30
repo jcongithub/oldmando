@@ -16,6 +16,7 @@ from downloader import download_earning
 from downloader import price
 from downloader import earning
 from downloader import sp500
+from downloader import testtrade
 from downloader import history_df_header
 from downloader import trade_file_name
 from downloader import download_price
@@ -264,6 +265,34 @@ def find_all_win_months(ticker_list):
 	
 	return ticker_month
 
+def find_winning_month(tickers, start_year, years):
+
+	result = pd.DataFrame()
+
+	for ticker in tickers:
+		print(ticker)
+		earning_history = earning(ticker, start_year, years)
+		trade_list = testtrade(ticker, earning_history.index.tolist())
+
+		if(len(trade_list) > 0):
+			groups = trade_list.groupby(['month', 'buy_days', 'sell_days'])
+			summery = groups.apply(group_summery)
+
+			months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)]
+					
+			if(len(months) > 0):
+				months.reset_index(inplace=True)
+				months['holding'] = months.apply(lambda x : x['sell_days'] - x['buy_days'], axis=1)
+				months.sort_values('holding', inplace=True)
+				months = months[~months.duplicated(['month'], keep='first')]
+				months['ticker'] = ticker
+				months.drop(['num_loss', 'num_tie', 'level_3'], axis=1, inplace=True)
+		
+				result = result.append(months.reset_index(drop=True).set_index(['month']))
+
+	return result
+
+
 def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 	skipped = []
 	
@@ -416,7 +445,7 @@ def daily_banlance(trades):
 		if(len(sell) > 0):
 			p = p + sell.sum().price
 
-		print("Date {} Balance {} Buy {} Sell {}".format(date, p, buy.index.tolist(), sell.index.tolist()))
+		print("{0} {1:10.2f} Buy {2} Sell {3}".format(date, p, buy.index.tolist(), sell.index.tolist()))
 
 		if (p < max_p):
 			max_p = p
@@ -435,10 +464,21 @@ def csv2html(csv_file_name, html_file_name):
 	return '<html><body><table>' + table_string + '</table></body></html>'    
 
 
+
+ 
+
+
+
 pd.options.display.width = 1000
 
 if __name__ == '__main__':
-	trade_schedule('Dec')	
+	files = listdir('data/')
+	trade_file_list = [f for f in files if f[-9:] == 'trade.csv']
+	ticker_list = [f[0:-10] for f in trade_file_list]
 
+	print(ticker_list)
 
+	ticker_month_list = find_winning_month(ticker_list, '2009', 5)
+
+	print(ticker_month_list)
 
