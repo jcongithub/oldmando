@@ -26,6 +26,19 @@ def earning_file_name(ticker):
 def price(ticker):
 	return read_history_data(price_file_name(ticker))
 
+def earnings(ticker_list):
+	today = datetime.now().strftime('%Y-%m-%d')
+	s = pd.DataFrame()
+
+	for ticker in ticker_list:
+		eh = earning(ticker);
+
+		edate = eh.index[0]
+		if(edate > today):
+			s = s.append({'ticker' : ticker, 'edate' : edate}, ignore_index=True)
+
+	return s
+
 def earning(ticker, start_year='2000', num_years=100):
 	file_name = earning_file_name(ticker)
 	e = read_history_data(file_name)
@@ -63,8 +76,10 @@ def testtrade(ticker, earning_date_list=None):
 		return history
 
 	filtered = pd.DataFrame()
+	index = history.index.tolist()
 	for earning_date in earning_date_list:
-		filtered = filtered.append(history.loc[earning_date])
+		if earning_date in index:
+			filtered = filtered.append(history.loc[earning_date])
 
 	return filtered
 

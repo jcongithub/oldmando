@@ -21,6 +21,8 @@ from downloader import history_df_header
 from downloader import trade_file_name
 from downloader import download_price
 from downloader import download_earning
+from downloader import earnings
+
 import os
 import csv
 import string
@@ -265,6 +267,35 @@ def find_all_win_months(ticker_list):
 	
 	return ticker_month
 
+def find_winning_month_s(tickers, start_year, years):
+	result = pd.DataFrame()
+	for ticker in tickers:
+		months = find_winning_month(ticker, start_year, years)
+		if(months):
+			result = result.append(months.reset_index(drop=True).set_index(['month']))
+	return result
+
+def find_winning_month(ticker, start_year, years, result):
+	print(ticker)
+	earning_history = earning(ticker, start_year, years)
+	trade_list = testtrade(ticker, earning_history.index.tolist())
+
+	if(len(trade_list) > 0):
+		groups = trade_list.groupby(['month', 'buy_days', 'sell_days'])
+		summery = groups.apply(group_summery)
+
+		months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)]
+					
+		if(len(months) > 0):
+			months.reset_index(inplace=True)
+			months['holding'] = months.apply(lambda x : x['sell_days'] - x['buy_days'], axis=1)
+			months.sort_values('holding', inplace=True)
+			months = months[~months.duplicated(['month'], keep='first')]
+			months['ticker'] = ticker
+			months.drop(['num_loss', 'num_tie', 'level_3'], axis=1, inplace=True)
+
+	return months
+
 def find_winning_month(tickers, start_year, years):
 
 	result = pd.DataFrame()
@@ -478,7 +509,18 @@ if __name__ == '__main__':
 
 	print(ticker_list)
 
-	ticker_month_list = find_winning_month(ticker_list, '2009', 5)
+	p3 = find_winning_month(ticker_list, '2009', 3)
+	p4 = find_winning_month(ticker_list, '2009', 4)
+	p5 = find_winning_month(ticker_list, '2009', 5)
+	p6 = find_winning_month(ticker_list, '2009', 5)
 
-	print(ticker_month_list)
+	p3_tickers = p3[~p3['ticker'].duplicated(keep='first')]['ticker'].tolist()
+	p4_tickers = p4[~p4['ticker'].duplicated(keep='first')]['ticker'].tolist()
+	p5_tickers = p5[~p5['ticker'].duplicated(keep='first')]['ticker'].tolist()
+	p6_tickers = p6[~p6['ticker'].duplicated(keep='first')]['ticker'].tolist()
+
+	print("3 months tickers:{}".format(len(p3_tickers)))
+	print("4 months tickers:{}".format(len(p4_tickers)))
+	print("5 months tickers:{}".format(len(p5_tickers)))
+	print("6 months tickers:{}".format(len(p6_tickers)))
 
