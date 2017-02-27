@@ -10,7 +10,9 @@ import numpy as np
 import re
 from datetime import date
 from os.path import isfile, join
-
+from os import listdir
+import fileinput
+import sqlite3
 
 pd.options.display.width = 1000
 
@@ -266,3 +268,56 @@ def download_sp500_company_list():
 	df = df[df['ticker'].apply(lambda x : x.isalpha())]
 	df.to_csv('data/sp500.csv', index=False)
 	return df;
+
+def load_earning_data():
+	conn = sqlite3.connect('load')
+	cur = conn.cursor()
+
+	for file in listdir('.'):
+		if 'earning.csv' in file:
+			ticker = file[:-12]
+			print("file:{} ticker:{}".format(file, ticker))
+			with open(file) as f:
+				for line in f:
+					line = line.rstrip('\n')
+					fields = line.split(",")
+					fields.insert(0, ticker)
+					try:
+						cur.execute("insert into earning values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
+					except:
+						print("{} - {}".format(fields, sys.exc_info()))
+
+	cur.execute("select count(*) from earning")
+	print(cur.fetchall())
+
+	conn.commit()
+	conn.close()	
+
+def load_price_data():
+	conn = sqlite3.connect('load')
+	cur = conn.cursor()
+
+	for file in listdir('.'):
+		if 'price.csv' in file:
+			ticker = file[:-10]
+			print("file:{} ticker:{}".format(file, ticker))
+			with open(file) as f:
+				for line in f:
+					line = line.rstrip('\n')
+					fields = line.split(",")
+					fields.insert(0, ticker)
+					try:
+						cur.execute("insert into price values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
+					except:
+						print("{} - {}".format(fields, sys.exc_info()))
+
+	cur.execute("select count(*) from price")
+	print(cur.fetchall())
+
+	conn.commit()
+	conn.close()	
+
+
+if __name__ == '__main__':
+	load_price_data()
+	load_earning_data()	
