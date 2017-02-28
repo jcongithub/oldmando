@@ -44,26 +44,28 @@ def earnings(ticker_list):
 def earning(ticker, start_year='2000', num_years=100):
 	file_name = earning_file_name(ticker)
 	e = read_history_data(file_name)
-
 	result = pd.DataFrame()
-	e['period2'] = e.apply(lambda row : row['period'][4:], axis=1)
-	start = int(start_year)
+	
+	if e is not None:
+		e['period2'] = e.apply(lambda row : row['period'][4:], axis=1)
+		start = int(start_year)
 
 
-	if(num_years > 0):
-		start = start
-		end = start + num_years
-	else:
-		end = start + 1
-		start = start + num_years + 1
+		if(num_years > 0):
+			start = start
+			end = start + num_years
+		else:
+			end = start + 1
+			start = start + num_years + 1
 
-	for year in range(start, end):
-		a = e[e['period2'] == str(year)]
-		result = result.append(a)
+		for year in range(start, end):
+			a = e[e['period2'] == str(year)]
+			result = result.append(a)
 
-	result.drop('period2', inplace=True, axis=1)
-	return result.sort_index(ascending=False)
+		result.drop('period2', inplace=True, axis=1)
+		result.sort_index(ascending=False)
 
+	return result
 
 
 def testtrade(ticker, earning_date_list=None):
@@ -278,12 +280,13 @@ def load_earning_data():
 			ticker = file[:-12]
 			print("file:{} ticker:{}".format(file, ticker))
 			with open(file) as f:
+				next(f)
 				for line in f:
 					line = line.rstrip('\n')
 					fields = line.split(",")
 					fields.insert(0, ticker)
 					try:
-						cur.execute("insert into earning values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
+						cur.execute("insert or replace into earning values(?, ?, ?, ?, ?, ?, ?)", fields)
 					except:
 						print("{} - {}".format(fields, sys.exc_info()))
 
@@ -302,12 +305,13 @@ def load_price_data():
 			ticker = file[:-10]
 			print("file:{} ticker:{}".format(file, ticker))
 			with open(file) as f:
+				next(f)
 				for line in f:
 					line = line.rstrip('\n')
 					fields = line.split(",")
 					fields.insert(0, ticker)
 					try:
-						cur.execute("insert into price values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
+						cur.execute("insert or replace into price values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
 					except:
 						print("{} - {}".format(fields, sys.exc_info()))
 
@@ -318,6 +322,6 @@ def load_price_data():
 	conn.close()	
 
 
-if __name__ == '__main__':
-	load_price_data()
-	load_earning_data()	
+#if __name__ == '__main__':
+#	load_price_data()
+#	load_earning_data()	
