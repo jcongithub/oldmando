@@ -14,8 +14,9 @@ import glob
 #from downloader import download_price
 #from downloader import download_earning
 from downloader2 import price
+from downloader2 import price1
 from downloader2 import earning
-from downloader import sp500
+from downloader2 import sp500
 from downloader2 import save_test_trades
 
 #from downloader import testtrade
@@ -28,6 +29,7 @@ from downloader2 import save_test_trades
 import os
 import csv
 import string
+import mpf
 
 stock = {}
 TODAY = datetime.now().strftime('%Y-%m-%d')
@@ -343,27 +345,36 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 	skipped = []
 	
 	for ticker in tickers:
+		mpf.task_start("GenerateTestTrade")
+		
+		mpf.task_start("ReadData")		
 		print("Generating test trades for " + ticker)
 		ph = price(ticker)
 		eh = earning(ticker)
+		mpf.task_start("ReadData")
 
 		if((ph is None) or (eh is None)):
 			print("No history data for {}".fimrat(ticker))
 			skipped.append(ticker)
 		else:
+			mpf.task_start("Calculate")
+			
 			#Remove future earning date from earning history
 			eh.reset_index(inplace=True)
 			eh = eh[eh['date'].apply(lambda x : x < TODAY)]
 			eh.set_index(['date'], inplace=True)
+			eh['month'] = eh.apply(lambda row : row['period'][:3], axis=1)
 
 			print("\tPrice " + history_df_header(ph))
 			print("\tEarning " + history_df_header(eh))
+
+			print(eh)
 
 			if ((len(ph) > 0) and (len(eh) > 0)):
 				list_trades = []
 				for sell_days in range(sell_days_range):
 					for buy_days in range(buy_days_range):
-						trades = trade_on_earning(ph, eh, -buy_days, sell_days)
+						trades = trade_on_earning2(ticker, eh, -buy_days, sell_days)
 
 						list_trades.extend(trades)
 
@@ -374,35 +385,101 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 					#trades.to_csv(trade_file_name(ticker))
 					save_test_trades(ticker, trades)
 					print("\t{} trades generated".format(len(trades)))
-	
+			
+			mpf.task_end("Calculate")
+
+		mpf.task_end("GenerateTestTrade")
+
 	if(len(skipped) > 0):
 		print("Following tickers were skipped due to no enough history data")
 		print(skipped)
 
+def trade_on_earning2(ticker, eh, buy_before_earning_days, sell_after_earning_days):
+	mpf.task_start("OneTradeForAllEarning")
+	list_trades = []
+
+	for index, row in eh.iterrows():
+
+		mpf.task_start("OneTestTrade")
+		earning_date = index
+		month = row['month']
+
+		mpf.task_start("CalculateBuySellDate")
+		sell_date = date_plus(earning_date, sell_after_earning_days)
+		buy_date  = date_plus(earning_date, buy_before_earning_days)
+		mpf.task_end("CalculateBuySellDate")
+		
+		mpf.task_start("FindBuySellPrices")
+		real_buy  = price1(ticker, buy_date)
+		real_sell = price1(ticker, sell_date)
+		mpf.task_end("FindBuySellPrices")
+
+		if(len(real_buy) > 0 and len(real_sell) > 0):
+			mpf.task_start("CalculateRealBuySellPrice")
+			sell_price = real_sell[0][4]
+			buy_price  = real_buy[0][4]
+			profit     = sell_price - buy_price
+			profit2    = (profit / buy_price) * 100
+			mpf.task_end("CalculateRealBuySellPrice")
+					
+			mpf.task_start("AppendTrade")
+			list_trades.append({'earning_date' : earning_date,
+								'month'        : month,
+								'buy_date'     : buy_date,
+					 			'buy_price'    : buy_price,
+				 				'sell_date'    : sell_date,
+				 				'sell_price'   : sell_price,
+				 				'profit'       : profit,
+				 				'profit2'	   : profit2,
+				 				'buy_days'     : buy_before_earning_days,
+				 				'sell_days'    : sell_after_earning_days})
+			mpf.task_end("AppendTrade")
+
+		mpf.task_end("OneTestTrade")
+			
+	mpf.task_end("OneTradeForAllEarning")
+
+	return list_trades
+
 def trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_days):
+	mpf.task_start("OneTradeForAllEarning")
 	list_trades = []
 	ph_start_date = ph.tail(1).iloc[0].name
 	ph_end_date = ph.head(1).iloc[0].name
 
 	for index, row in eh.iterrows():
-		earning_date = index
-		month = row['period'][:3]
+		
+		mpf.task_start("OneTestTrade")
 
-		d = datetime.strptime(earning_date, '%Y-%m-%d')
+		earning_date = index
+		month = row['month']
+
+		mpf.task_start("CalculateBuySellDate")
 		sell_date = date_plus(earning_date, sell_after_earning_days)
 		buy_date  = date_plus(earning_date, buy_before_earning_days)
+		mpf.task_end("CalculateBuySellDate")
 
 		## if we don't have enough price date for this earning date, what do we need to do?
 		if ((buy_date >= ph_start_date) & (buy_date < ph_end_date) & (sell_date > ph_start_date) & (sell_date <= ph_end_date)):
-			prices = ph.loc[sell_date:buy_date, ['close']]			
+			
+			mpf.task_start("FindPriceSection")
+			prices = ph.loc[sell_date:buy_date, ['close']]	
+			mpf.task_end("FindPriceSection")
+
 			if (len(prices) > 0):
+				mpf.task_start("FindBuySellPrices")
 				real_buy = prices.tail(1).iloc[0]
 				real_sell = prices.head(1).iloc[0]
+				mpf.task_end("FindBuySellPrices")
 
+				mpf.task_start("CalculateRealBuySellPrice")
 				sell_price = real_sell['close']
 				buy_price  = real_buy['close']
 				profit     = sell_price - buy_price
 				profit2    = (profit / buy_price) * 100
+				mpf.task_end("")
+				
+				mpf.task_start("AppendTrade")
 				list_trades.append({'earning_date' : earning_date,
 									'month'        : month,
 									'buy_date'     : real_buy.name,
@@ -413,6 +490,11 @@ def trade_on_earning(ph, eh, buy_before_earning_days, sell_after_earning_days):
 					 				'profit2'	   : profit2,
 					 				'buy_days'     : buy_before_earning_days,
 					 				'sell_days'    : sell_after_earning_days})
+				mpf.task_end("AppendTrade")
+
+		mpf.task_end("OneTestTrade")
+			
+	mpf.task_end("OneTradeForAllEarning")
 
 	return list_trades
 

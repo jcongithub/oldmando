@@ -24,7 +24,7 @@ create table price
 	constraint earning_pk primary key (ticker, date)	
 );
 
-create table trade
+create table trades
 (
 	ticker varchar not null,
 	earning_date varchar,
