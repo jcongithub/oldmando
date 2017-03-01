@@ -24,6 +24,22 @@ create table price
 	constraint earning_pk primary key (ticker, date)	
 );
 
+create table trade
+(
+	ticker varchar not null,
+	earning_date varchar,
+	month varchar,
+	buy_days int, 
+	sell_days int, 
+	buy_date varchar,
+	sell_date varchar,
+	buy_price float,
+	sell_price float, 
+	profit float, 
+	profit2 float
+);
+
+
 
 ---make sure no duplicate earning report date
 select ticker, date, count(*) as num from earning group by ticker, date having num > 1;

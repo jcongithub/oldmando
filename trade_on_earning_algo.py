@@ -16,6 +16,8 @@ import glob
 from downloader2 import price
 from downloader2 import earning
 from downloader import sp500
+from downloader2 import save_test_trades
+
 #from downloader import testtrade
 #from downloader import history_df_header
 #from downloader import trade_file_name
@@ -369,7 +371,8 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 				
 				if(len(trades) > 0):				
 					trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-					trades.to_csv(trade_file_name(ticker))
+					#trades.to_csv(trade_file_name(ticker))
+					save_test_trades(ticker, trades)
 					print("\t{} trades generated".format(len(trades)))
 	
 	if(len(skipped) > 0):
