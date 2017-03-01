@@ -9,19 +9,19 @@ from os import listdir
 from os.path import isfile, join
 
 import glob
-from downloader import earning_schedule
-from downloader import download_sp500_company_list
-from downloader import download_price
-from downloader import download_earning
-from downloader import price
-from downloader import earning
+#from downloader import earning_schedule
+#from downloader import download_sp500_company_list
+#from downloader import download_price
+#from downloader import download_earning
+from downloader2 import price
+from downloader2 import earning
 from downloader import sp500
-from downloader import testtrade
-from downloader import history_df_header
-from downloader import trade_file_name
-from downloader import download_price
-from downloader import download_earning
-from downloader import earnings
+#from downloader import testtrade
+#from downloader import history_df_header
+#from downloader import trade_file_name
+#from downloader import download_price
+#from downloader import download_earning
+#from downloader import earnings
 
 import os
 import csv
@@ -268,18 +268,26 @@ def find_all_win_months(ticker_list):
 	return ticker_month
 
 def find_winning_month_s(tickers, start_year, years):
+	if tickers is None:
+		tickers = [f for f in listdir('data/') if 'trade.csv' in f]
+		tickers = [f[:-10] for f in tickers]
+
+	print(tickers)
+	print("{} tickers".format(len(tickers)))
+
 	result = pd.DataFrame()
 	for ticker in tickers:
 		months = find_winning_month(ticker, start_year, years)
-		if(months):
+		if(months is not None and len(months) > 0):
 			result = result.append(months.reset_index(drop=True).set_index(['month']))
 	return result
 
-def find_winning_month(ticker, start_year, years, result):
+def find_winning_month(ticker, start_year, years):
 	print(ticker)
 	earning_history = earning(ticker, start_year, years)
 	trade_list = testtrade(ticker, earning_history.index.tolist())
 
+	months = None
 	if(len(trade_list) > 0):
 		groups = trade_list.groupby(['month', 'buy_days', 'sell_days'])
 		summery = groups.apply(group_summery)
@@ -296,33 +304,38 @@ def find_winning_month(ticker, start_year, years, result):
 
 	return months
 
-def find_winning_month(tickers, start_year, years):
+#def find_winning_month(tickers, start_year, years):
+#
+#	result = pd.DataFrame()
+#
+#	for ticker in tickers:
+#		print(ticker)
+#		earning_history = earning(ticker, start_year, years)
+#		trade_list = testtrade(ticker, earning_history.index.tolist())
+#
+#		if(len(trade_list) > 0):
+#			groups = trade_list.groupby(['month', 'buy_days', 'sell_days'])
+#			summery = groups.apply(group_summery)
+#
+#			months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)]
+#					
+#			if(len(months) > 0):
+#				months.reset_index(inplace=True)
+#				months['holding'] = months.apply(lambda x : x['sell_days'] - x['buy_days'], axis=1)
+#				months.sort_values('holding', inplace=True)
+#				months = months[~months.duplicated(['month'], keep='first')]
+#				months['ticker'] = ticker
+#				months.drop(['num_loss', 'num_tie', 'level_3'], axis=1, inplace=True)
+#		
+#				result = result.append(months.reset_index(drop=True).set_index(['month']))
+#
+#	return result
 
-	result = pd.DataFrame()
-
-	for ticker in tickers:
-		print(ticker)
-		earning_history = earning(ticker, start_year, years)
-		trade_list = testtrade(ticker, earning_history.index.tolist())
-
-		if(len(trade_list) > 0):
-			groups = trade_list.groupby(['month', 'buy_days', 'sell_days'])
-			summery = groups.apply(group_summery)
-
-			months = summery[(summery.num_loss == 0) & (summery.num_tie == 0)]
-					
-			if(len(months) > 0):
-				months.reset_index(inplace=True)
-				months['holding'] = months.apply(lambda x : x['sell_days'] - x['buy_days'], axis=1)
-				months.sort_values('holding', inplace=True)
-				months = months[~months.duplicated(['month'], keep='first')]
-				months['ticker'] = ticker
-				months.drop(['num_loss', 'num_tie', 'level_3'], axis=1, inplace=True)
-		
-				result = result.append(months.reset_index(drop=True).set_index(['month']))
-
-	return result
-
+def history_df_header(e):
+	if(len(e) > 0):
+		return 'records:{} from:{} to:{}'.format(len(e), e.tail(1).index[0], e.head(1).index[0])
+	else:
+		return 'records:0'
 
 def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 	skipped = []
@@ -353,9 +366,11 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 						list_trades.extend(trades)
 
 				trades = pd.DataFrame(list_trades)
-				trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-				trades.to_csv(trade_file_name(ticker))
-				print("\t{} trades generated".format(len(trades)))
+				
+				if(len(trades) > 0):				
+					trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
+					trades.to_csv(trade_file_name(ticker))
+					print("\t{} trades generated".format(len(trades)))
 	
 	if(len(skipped) > 0):
 		print("Following tickers were skipped due to no enough history data")
@@ -486,13 +501,24 @@ def daily_banlance(trades):
 	print("Pricipal required {} PnL {}".format(-max_p, trades['pnl'].sum()))
 
 def csv2html(csv_file_name, html_file_name):
-	with open(csv_file_name, 'r') as csvfile:
-		table_string = ""
-		reader = csv.reader(csvfile)
-		for row in reader:
-			table_string += "<tr><td>" + "</td><td>".join(row) + "</td>" + "</tr>\n"
-	
-	return '<html><body><table>' + table_string + '</table></body></html>'    
+	table_string = ""
+	s = pd.read_csv(csv_file_name)
+	s.sort_values(['buy_date'], inplace=True, ascending=True)
+	table_string = "<tr><td>ticker</td><td>buy_date</td><td>sell_date</td><td>date</td><td>holding</td><td>max_profit</td><td>min_profit</td><td>mean_profit</td></tr>"
+	for index, row in s.iterrows():
+		table_string += "<tr>"
+		ticker = row['ticker']
+		table_string += '<td>' + '<a href="https://www.google.com/finance?q=' + ticker + '">' + ticker + '</a></td>'
+		table_string += '<td>' + row['buy_date'] + "</td>"
+		table_string += '<td>' + row['sell_date'] + "</td>"
+		table_string += '<td>' + row['date'] + "</td>"
+		table_string += '<td>' + str(row['holding']) + "</td>"
+		table_string += '<td>' + '{:.2f}'.format(row['max_profit']) + "</td>"
+		table_string += '<td>' + '{:.2f}'.format(row['min_profit']) + "</td>"
+		table_string += '<td>' + '{:.2f}'.format(row['mean_profit']) + "</td>"
+		table_string += "</tr>"
+
+	return '<html><head><link rel="stylesheet" type="text/css" href="a.css"></head><body><table>' + table_string + '</table></body></html>'    
 
 
 
@@ -502,25 +528,5 @@ def csv2html(csv_file_name, html_file_name):
 
 pd.options.display.width = 1000
 
-if __name__ == '__main__':
-	files = listdir('data/')
-	trade_file_list = [f for f in files if f[-9:] == 'trade.csv']
-	ticker_list = [f[0:-10] for f in trade_file_list]
-
-	print(ticker_list)
-
-	p3 = find_winning_month(ticker_list, '2009', 3)
-	p4 = find_winning_month(ticker_list, '2009', 4)
-	p5 = find_winning_month(ticker_list, '2009', 5)
-	p6 = find_winning_month(ticker_list, '2009', 5)
-
-	p3_tickers = p3[~p3['ticker'].duplicated(keep='first')]['ticker'].tolist()
-	p4_tickers = p4[~p4['ticker'].duplicated(keep='first')]['ticker'].tolist()
-	p5_tickers = p5[~p5['ticker'].duplicated(keep='first')]['ticker'].tolist()
-	p6_tickers = p6[~p6['ticker'].duplicated(keep='first')]['ticker'].tolist()
-
-	print("3 months tickers:{}".format(len(p3_tickers)))
-	print("4 months tickers:{}".format(len(p4_tickers)))
-	print("5 months tickers:{}".format(len(p5_tickers)))
-	print("6 months tickers:{}".format(len(p6_tickers)))
-
+#if __name__ == '__main__':
+#	print(csv2html('data/signals.csv', 'dec.html'))

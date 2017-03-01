@@ -26,4 +26,9 @@ create table price
 
 
 ---make sure no duplicate earning report date
-select ticker, date, count(*) as num from earning group by ticker, date having num > 1
+select ticker, date, count(*) as num from earning group by ticker, date having num > 1;
+
+---
+select * from earning a
+join (select ticker, date, count(*) as num from earning group by ticker, date having num > 1) b
+on a.ticker = b.ticker and a.date = b.date;

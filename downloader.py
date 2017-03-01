@@ -103,11 +103,6 @@ def read_history_data(file_name):
 		print("History data not found at {}".format(file_name))
 	return history
 
-def history_df_header(e):
-	if(len(e) > 0):
-		return 'records:{} from:{} to:{}'.format(len(e), e.tail(1).index[0], e.head(1).index[0])
-	else:
-		return 'records:0'
 
 def merge_df(p1, p2):
 	if p2 is None:
@@ -286,7 +281,7 @@ def load_earning_data():
 					fields = line.split(",")
 					fields.insert(0, ticker)
 					try:
-						cur.execute("insert or replace into earning values(?, ?, ?, ?, ?, ?, ?)", fields)
+						cur.execute("insert or replace into earning values(?, ?, ?, ?, ?, ?, ?)", fields[:-1])
 					except:
 						print("{} - {}".format(fields, sys.exc_info()))
 
