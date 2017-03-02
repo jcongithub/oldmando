@@ -351,7 +351,7 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 		print("Generating test trades for " + ticker)
 		ph = price(ticker)
 		eh = earning(ticker)
-		mpf.task_start("ReadData")
+		mpf.task_end("ReadData")
 
 		if((ph is None) or (eh is None)):
 			print("No history data for {}".fimrat(ticker))
@@ -363,12 +363,9 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 			eh.reset_index(inplace=True)
 			eh = eh[eh['date'].apply(lambda x : x < TODAY)]
 			eh.set_index(['date'], inplace=True)
-			eh['month'] = eh.apply(lambda row : row['period'][:3], axis=1)
 
 			print("\tPrice " + history_df_header(ph))
 			print("\tEarning " + history_df_header(eh))
-
-			print(eh)
 
 			if ((len(ph) > 0) and (len(eh) > 0)):
 				list_trades = []
@@ -381,8 +378,7 @@ def create_test_trades(tickers, buy_days_range=15, sell_days_range=15):
 				trades = pd.DataFrame(list_trades)
 				
 				if(len(trades) > 0):				
-					trades = trades[['earning_date','month', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
-					#trades.to_csv(trade_file_name(ticker))
+					trades = trades[['earning_date','period', 'buy_days', 'sell_days', 'buy_date', 'sell_date', 'buy_price','sell_price', 'profit', 'profit2']].set_index('earning_date').sort_values(['buy_days', 'sell_days'])
 					save_test_trades(ticker, trades)
 					print("\t{} trades generated".format(len(trades)))
 			
@@ -402,7 +398,7 @@ def trade_on_earning2(ticker, eh, buy_before_earning_days, sell_after_earning_da
 
 		mpf.task_start("OneTestTrade")
 		earning_date = index
-		month = row['month']
+		period = row['period']
 
 		mpf.task_start("CalculateBuySellDate")
 		sell_date = date_plus(earning_date, sell_after_earning_days)
@@ -424,7 +420,7 @@ def trade_on_earning2(ticker, eh, buy_before_earning_days, sell_after_earning_da
 					
 			mpf.task_start("AppendTrade")
 			list_trades.append({'earning_date' : earning_date,
-								'month'        : month,
+								'period'       : period,
 								'buy_date'     : buy_date,
 					 			'buy_price'    : buy_price,
 				 				'sell_date'    : sell_date,

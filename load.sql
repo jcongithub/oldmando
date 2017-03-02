@@ -28,7 +28,7 @@ create table trades
 (
 	ticker varchar not null,
 	earning_date varchar,
-	month varchar,
+	period varchar,
 	buy_days int, 
 	sell_days int, 
 	buy_date varchar,
