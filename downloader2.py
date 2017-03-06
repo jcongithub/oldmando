@@ -96,11 +96,17 @@ def find_consective_winning_stocks(start_period, num_period):
 
 	print(periods)
 
+	winning_stocks = None
 	for period in periods:
 		print (period)
 		stocks = find_profitable_stocks_for_period(period)
-		print(stocks)
-		print(len(stocks))
-		print("")
+		
+		if winning_stocks is None:
+			winning_stocks = set(stocks)
+		else:
+			winning_stocks = winning_stocks & set(stocks)
+		
+		print(len(winning_stocks))
+		
 
 
