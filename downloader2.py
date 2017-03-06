@@ -51,3 +51,56 @@ def save_test_trades(ticker, trades):
 		cur2.execute("insert or replace into trades values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", fields)
 
 	conn2.commit();
+
+
+def find_periods_tested():
+	cur2.execute("select distinct period from trades order by period")
+	periods = cur2.fetchall()
+	return [period[0] for period in periods]
+
+def find_profitable_stock_ratio_for_period(periods):
+	result = [];
+	for period in periods:
+		cur2.execute("select count(*) from (select distinct ticker from trades where period=:period)", {"period" : period})
+		total_stocks = cur2.fetchone()
+
+		cur2.execute("select count(*) from (select distinct ticker from trades where period=:period and profit2 > 0)", {"period" : period})
+		profitable_stocks = cur2.fetchone();
+
+		result.append({'period' : period, 'count' : total_stocks[0], 'winning' : profitable_stocks[0]})
+
+	return result
+
+def find_profitable_stocks_for_period(period):
+	cur2.execute("select distinct ticker from trades where profit2 > 0 and period =:period", {"period" : period})
+	profitable_stocks = cur2.fetchall()
+	return [stock[0] for stock in profitable_stocks]
+
+
+def find_consective_winning_stocks(start_period, num_period):
+	QUARTERS = ['Mar', 'Jun', 'Sep', 'Dec']
+	quarter = start_period[:3]
+	iquarter = QUARTERS.index(quarter)
+	year = int(start_period[4:])
+
+	periods = []
+	for i in range(num_period):
+		if iquarter >= 4:
+			iquarter = 0
+			year = year + 1
+		
+		period = QUARTERS[iquarter] + ' ' + str(year)
+		periods.append(period)
+
+		iquarter = iquarter + 1	
+
+	print(periods)
+
+	for period in periods:
+		print (period)
+		stocks = find_profitable_stocks_for_period(period)
+		print(stocks)
+		print(len(stocks))
+		print("")
+
+
