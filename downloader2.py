@@ -108,5 +108,13 @@ def find_consective_winning_stocks(start_period, num_period):
 		
 		print(len(winning_stocks))
 		
+def find_consective_winning_stocks_on_quarter(quarter, start_year, end_year):
+	sql = "select ticker, count(*) from (select ticker, period, count(*)  from trades where profit2 > 0 and substr(period, 0, 4) = :quarter and substr(period, 5) >=:start_year and substr(period, 5) < :end_year group by ticker, period) group by ticker having count(*) = :years"
+	years = int(end_year) - int(start_year)
+	cur2.execute(sql, {'quarter' : quarter, 'start_year' : start_year, 'end_year' : end_year, 'years' : years})
+	profitable_stocks = cur2.fetchall()
+	return [stock[0] for stock in profitable_stocks]	
+
+
 
 
