@@ -9,10 +9,12 @@ import pandas as pd
 import numpy as np
 import re
 from datetime import date
+from datetime import timedelta
 from os.path import isfile, join
 from os import listdir
 import fileinput
 import sqlite3
+
 
 pd.options.display.width = 1000
 
@@ -199,42 +201,48 @@ def content_to_file(file_path, content):
 	with open(file_path, "w") as f:
 		f.write(content)
 
-def earning_schedule(date):
-	base_url = 'http://www.nasdaq.com/earnings/earnings-calendar.aspx'
-	params = {'date' : date}
-	response = requests.get(base_url, params=params)
-	txt = response.text	
-	soup = BeautifulSoup(txt, 'html.parser')
-	tables = soup.find_all('table', {'id' : 'ECCompaniesTable'})
-	if(len(tables) == 0):
-		return {};
+def download_earning_schedule(start_date=datetime.now(), number_daye = 1, update_database = True):
+	for i in range(number_daye):
+		date = start_date + timedelta(days = i)
+		sdate = date.strftime('%Y-%b-%d')
+		print(sdate)
 
-	trs = tables[0].find_all('tr')
+		base_url = 'http://www.nasdaq.com/earnings/earnings-calendar.aspx'
+		params = {'date' : sdate}
+		response = requests.get(base_url, params=params)
+		txt = response.text	
+		soup = BeautifulSoup(txt, 'html.parser')
+		tables = soup.find_all('table', {'id' : 'ECCompaniesTable'})
 
-	records = []
-	for row in range(1, len(trs)):
-		tr = trs[row]
-		tds = tr.find_all('td')
-		
-		company = tds[1].text.strip()
-		m = re.match('.*\(([A-Z].*)\).*', company)
-		ticker = m.group(1) 
+		if(len(tables) > 0):
+			trs = tables[0].find_all('tr')
 
-		record = {
-			'company' : company,
-			'ticker'  : ticker.lower(),
-			'date'    : tds[2].text.strip(),
-			'month'   : tds[3].text.strip(),
-			'eps'     : tds[4].text.strip(),
-			'numests' : tds[5].text.strip(),
-			'last_year_date' : tds[6].text.strip(),
-			'last_year_eps' : tds[7].text.strip(),
-		}
+			records = []
+			for row in range(1, len(trs)):
+				tr = trs[row]
+				tds = tr.find_all('td')
+			
+				company = tds[1].text.strip()
+				m = re.match('.*\(([A-Z].*)\).*', company)
+				ticker = m.group(1) 
 
-		records.append(record)
+				record = {
+					'company' : company,
+					'ticker'  : ticker.lower(),
+					'date'    : tds[2].text.strip(),
+					'month'   : tds[3].text.strip(),
+					'eps'     : tds[4].text.strip(),
+					'numests' : tds[5].text.strip(),
+					'last_year_date' : tds[6].text.strip(),
+					'last_year_eps' : tds[7].text.strip(),
+				}
 
-	df = pd.DataFrame(records)
-	return df
+				records.append(record)
+
+			print("{} companies on {}".format(len(records), sdate))			
+			save_earning_schedule(records)
+		else:
+			print("downloading faild")	
 
 def download_sp500_company_list():
 	url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
@@ -316,6 +324,14 @@ def load_price_data():
 	conn.commit()
 	conn.close()	
 
+def save_earning_schedule(list_schedule):
+	conn = sqlite3.connect('./db/earning_schedule')
+	cur = conn.cursor()
+	for schedule in list_schedule:
+		cur.execute("insert or replace into schedule(ticker, date, eps, last_year_date, last_year_eps, month, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
+
+	conn.commit()
+	conn.close()	
 
 #if __name__ == '__main__':
 #	load_price_data()

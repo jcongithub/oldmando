@@ -39,6 +39,17 @@ create table trades
 	profit2 float
 );
 
+create table earning_schedule
+(   ticker varchar not null,
+	date   varchar,
+	eps    varchar,
+	last_year_date varchar,
+	last_year_eps  varchar,
+	month  varchar,
+	numests int,
+	company varchar,
+	constraint schedule_pk primary key (ticker)
+);
 
 
 ---make sure no duplicate earning report date
