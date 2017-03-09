@@ -39,7 +39,7 @@ create table trades
 	profit2 float
 );
 
-create table earning_schedule
+create table schedule
 (   ticker varchar not null,
 	date   varchar,
 	eps    varchar,

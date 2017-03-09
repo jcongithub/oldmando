@@ -201,8 +201,8 @@ def content_to_file(file_path, content):
 	with open(file_path, "w") as f:
 		f.write(content)
 
-def download_earning_schedule(start_date=datetime.now(), number_daye = 1, update_database = True):
-	for i in range(number_daye):
+def download_earning_schedule(start_date=datetime.now(), number_days = 1, update_database = True):
+	for i in range(number_days):
 		date = start_date + timedelta(days = i)
 		sdate = date.strftime('%Y-%b-%d')
 		print(sdate)

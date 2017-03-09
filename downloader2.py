@@ -2,6 +2,8 @@ import sqlite3
 import pandas as pd
 from os.path import isfile, join
 import mpf
+from datetime import datetime
+from datetime import timedelta
 
 pd.options.display.width = 1000
 
@@ -40,6 +42,22 @@ def sp500():
 		download_sp500_company_list()
 
 	return pd.read_csv(file_name, index_col=['ticker'])
+
+def schedule(start_date=datetime.now(), number_days=15):
+	end_date = start_date + timedelta(days = number_days)
+	start = start_date.strftime('%m/%d/%Y')
+	end = end_date.strftime('%m/%d/%Y')
+
+	con = sqlite3.connect('db/earning_schedule') 
+	c = con.cursor()
+	c.execute("select ticker, date from schedule where date >= :start and date < :end", {'start' : start, 'end' : end})
+
+	rows = c.fetchall()
+
+	con.close()
+
+	return [{'ticker':row[0], 'date':row[1]} for row in rows]
+
 
 def save_test_trades(ticker, trades):
 	trades.reset_index(inplace=True)
