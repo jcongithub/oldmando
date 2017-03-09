@@ -325,7 +325,7 @@ def load_price_data():
 	conn.close()	
 
 def save_earning_schedule(list_schedule):
-	conn = sqlite3.connect('./db/earning_schedule')
+	conn = sqlite3.connect('./db/schedule')
 	cur = conn.cursor()
 	for schedule in list_schedule:
 		cur.execute("insert or replace into schedule(ticker, date, eps, last_year_date, last_year_eps, month, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
