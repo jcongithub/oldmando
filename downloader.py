@@ -14,6 +14,7 @@ from os.path import isfile, join
 from os import listdir
 import fileinput
 import sqlite3
+import dao
 
 
 pd.options.display.width = 1000
@@ -150,17 +151,44 @@ def download_earning(tickers):
 					}
 					records.append(record)
 
-		e1 = pd.DataFrame(records).set_index(['date'])
-		e2 = earning(ticker)
-		
-		em = merge_df(e1, e2)
-		em.to_csv(earning_file_name(ticker))
+				dao.save_earning(ticker, records)
 
+#		e1 = pd.DataFrame(records).set_index(['date'])
+#		e2 = earning(ticker)
+#		
+#		em = merge_df(e1, e2)
+#		em.to_csv(earning_file_name(ticker))
+
+
+def save_price(ticker, price_file):
+	conn = sqlite3.connect('db/history')
+	cur = conn.cursor()
+	print("database opened")
+
+	cur.execute("select count(*) from price where ticker=:ticker", {'ticker':ticker})
+	print("Currently we have {} days prices".format(cur.fetchall()))
+
+	print("file:{} ticker:{}".format(price_file, ticker))
+	with open(price_file) as f:
+		next(f)
+		for line in f:
+			line = line.rstrip('\n')
+			fields = line.split(",")
+			fields.insert(0, ticker)
+			try:
+				cur.execute("insert or replace into price values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
+			except:
+				print("{} - {}".format(fields, sys.exc_info()))
+
+	cur.execute("select count(*) from price where ticker=:ticker", {'ticker':ticker})
+	print("After updated we have {} days prices".format(cur.fetchall()))
+
+	conn.commit()
+	conn.close()	
 
 def download_price(tickers):
 	skipped = []
 	for ticker in tickers:
-		file_path = 'data/' + ticker + '.price.tmp'
 		price_file = price_file_name(ticker) 
 		try:
 			print('Downloading price history: {}'.format(ticker))
@@ -172,24 +200,11 @@ def download_price(tickers):
 					  'f' : today.year}
 
 			response = requests.get(url, params=params)
-
-			
-			content_to_file(file_path, response.text)
-			
-			p = pd.read_csv(file_path)
-			p.columns = [x.lower() for x in p.columns]
-			p = p.set_index(['date'])
-			p2 = price(ticker)
-			pm = merge_df(p, p2)	
-			pm.to_csv(price_file)
-
+			content_to_file(price_file, response.text)
+			print("{} price file saved at {}".format(ticker, price_file))
+			save_price(ticker, price_file)
 		except:
 			skipped.append(ticker)
-			if(isfile(price_file)):
-				os.remove(price_file)
-				
-		if(isfile(file_path)):
-			os.remove(file_path)
 	
 	if(len(skipped) > 0):
 		print("Cannot download price history data for following tickerss")
@@ -240,7 +255,7 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 				records.append(record)
 
 			print("{} companies on {}".format(len(records), sdate))			
-			save_earning_schedule(records)
+			dao.save_earning_schedule(records)
 		else:
 			print("downloading faild")	
 
@@ -299,39 +314,7 @@ def load_earning_data():
 	conn.commit()
 	conn.close()	
 
-def load_price_data():
-	conn = sqlite3.connect('load')
-	cur = conn.cursor()
 
-	for file in listdir('.'):
-		if 'price.csv' in file:
-			ticker = file[:-10]
-			print("file:{} ticker:{}".format(file, ticker))
-			with open(file) as f:
-				next(f)
-				for line in f:
-					line = line.rstrip('\n')
-					fields = line.split(",")
-					fields.insert(0, ticker)
-					try:
-						cur.execute("insert or replace into price values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
-					except:
-						print("{} - {}".format(fields, sys.exc_info()))
-
-	cur.execute("select count(*) from price")
-	print(cur.fetchall())
-
-	conn.commit()
-	conn.close()	
-
-def save_earning_schedule(list_schedule):
-	conn = sqlite3.connect('./db/schedule')
-	cur = conn.cursor()
-	for schedule in list_schedule:
-		cur.execute("insert or replace into schedule(ticker, date, eps, last_year_date, last_year_eps, month, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
-
-	conn.commit()
-	conn.close()	
 
 #if __name__ == '__main__':
 #	load_price_data()
