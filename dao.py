@@ -5,6 +5,7 @@ import mpf
 from datetime import datetime
 from datetime import timedelta
 
+SCHEDULE_TABLE = "s.schedule"
 pd.options.display.width = 1000
 
 conn = sqlite3.connect('db/history')
@@ -89,10 +90,23 @@ def save_test_trades(ticker, trades):
 
 	conn2.commit();
 
+
+def backup_table(src):
+	print("backup table:{}".format(src))
+	today = datetime.now().strftime('%Y%m%d')
+	dest = src + "_" + today
+	print("droping table:{}".format(dest))
+	cur.execute("DROP TABLE IF EXISTS " + dest)
+	cur.execute("create table " + dest + " as select * from " + src)
+	conn.commit()
+	print("table:{} backed up to:{}".format(src, dest))
+
 def save_earning_schedule(list_schedule):
+	#backup first
+	backup_table(SCHEDULE_TABLE)
 	for schedule in list_schedule:
-		cur3.execute("insert or replace into schedule(ticker, date, eps, last_year_date, last_year_eps, month, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
-	conn3.commit()
+		cur.execute("insert or replace into " + SCHEDULE_TABLE + "(ticker, date, eps, last_year_date, last_year_eps, period, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
+	conn.commit()
 
 def test_summary(ticker, quarter):
 	params = {'ticker' : ticker, 'quarter' : quarter}

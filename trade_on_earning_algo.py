@@ -14,6 +14,7 @@ import string
 
 import mpf
 import dao
+import downloader
 
 stock = {}
 TODAY = datetime.now().strftime('%Y-%m-%d')
@@ -516,6 +517,25 @@ def trading_signal(start_date = datetime.now(), number_days = 20):
 			winning_stocks.append(summary)
 
 	return winning_stocks
+
+
+def weekly_calculation():
+	#download earning schedule
+	start_date = datetime.now() + timedelta(days = 14)
+	num_days = 7
+	earning_schedule = downloader.download_earning_schedule(start_date, num_days)
+	df = pd.DataFrame(earning_schedule)
+	print(df)
+
+	#save earning schedule
+	dao.save_earning_schedule(earning_schedule);
+
+	#download price and earning history
+	#calculate back test trades
+	#generate trade plan
+
+
+
 
 pd.options.display.width = 1000
 

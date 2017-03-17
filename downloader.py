@@ -217,6 +217,9 @@ def content_to_file(file_path, content):
 		f.write(content)
 
 def download_earning_schedule(start_date=datetime.now(), number_days = 1, update_database = True):
+	
+	records = []
+
 	for i in range(number_days):
 		date = start_date + timedelta(days = i)
 		sdate = date.strftime('%Y-%b-%d')
@@ -232,7 +235,6 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 		if(len(tables) > 0):
 			trs = tables[0].find_all('tr')
 
-			records = []
 			for row in range(1, len(trs)):
 				tr = trs[row]
 				tds = tr.find_all('td')
@@ -255,9 +257,12 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 				records.append(record)
 
 			print("{} companies on {}".format(len(records), sdate))			
-			dao.save_earning_schedule(records)
+			#dao.save_earning_schedule(records)
 		else:
-			print("downloading faild")	
+			print("downloading faild")
+	
+	return records
+
 
 def download_sp500_company_list():
 	url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
