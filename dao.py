@@ -2,6 +2,7 @@ import sqlite3
 import pandas as pd
 from os.path import isfile, join
 import mpf
+import msqlite
 from datetime import datetime
 from datetime import timedelta
 
@@ -91,19 +92,10 @@ def save_test_trades(ticker, trades):
 	conn2.commit();
 
 
-def backup_table(src):
-	print("backup table:{}".format(src))
-	today = datetime.now().strftime('%Y%m%d')
-	dest = src + "_" + today
-	print("droping table:{}".format(dest))
-	cur.execute("DROP TABLE IF EXISTS " + dest)
-	cur.execute("create table " + dest + " as select * from " + src)
-	conn.commit()
-	print("table:{} backed up to:{}".format(src, dest))
 
 def save_earning_schedule(list_schedule):
 	#backup first
-	backup_table(SCHEDULE_TABLE)
+	msqlite.backup_table(SCHEDULE_TABLE, None, conn)
 	for schedule in list_schedule:
 		cur.execute("insert or replace into " + SCHEDULE_TABLE + "(ticker, date, eps, last_year_date, last_year_eps, period, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
 	conn.commit()
