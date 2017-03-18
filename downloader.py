@@ -15,7 +15,7 @@ from os import listdir
 import fileinput
 import sqlite3
 import dao
-
+import msqlite
 
 pd.options.display.width = 1000
 
@@ -118,7 +118,8 @@ def merge_df(p1, p2):
 
 #####################################################################################################
 ##   Download stock price history, stock earnings history
-def download_earning(tickers):
+def download_earning_history(tickers):
+	dao.backup_earning_history()
 	for ticker in tickers:
 		print('Downloading earning history: {}'.format(ticker))
 		base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
@@ -151,14 +152,7 @@ def download_earning(tickers):
 					}
 					records.append(record)
 
-				dao.save_earning(ticker, records)
-
-#		e1 = pd.DataFrame(records).set_index(['date'])
-#		e2 = earning(ticker)
-#		
-#		em = merge_df(e1, e2)
-#		em.to_csv(earning_file_name(ticker))
-
+				dao.save_earning_history(ticker, records)
 
 def save_price(ticker, price_file):
 	conn = sqlite3.connect('db/history')

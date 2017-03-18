@@ -7,6 +7,8 @@ from datetime import datetime
 from datetime import timedelta
 
 SCHEDULE_TABLE = "s.schedule"
+EARNING_HISTORY_TABLE = "earning"
+
 pd.options.display.width = 1000
 
 conn = sqlite3.connect('db/history')
@@ -66,18 +68,27 @@ def all_stock_symbols():
 	rows = cur1.fetchall()
 	return [row[0] for row in rows]	
 
-def save_earning(ticker, records):
+def backup_earning_history():
+	msqlite.backup_table(EARNING_HISTORY_TABLE, None, conn)
+	
+def save_earning_history(ticker, records):
 	print("Saving {} earning history: {} earnings".format(ticker, len(records)))
-	cur1.execute("select count(*) from earning where ticker=:ticker", {'ticker':ticker})
-	print("Currently, we have {} earning records".format(cur1.fetchall()))
+	cur.execute("select count(*) from " + EARNING_HISTORY_TABLE + " where ticker=:ticker", {'ticker':ticker})
+	print("Currently, we have {} earning records".format(cur.fetchall()))
 
 	for record in records:
 		record['ticker'] = ticker
-		cur1.execute("insert or replace into earning values(:ticker, :date, :estimate, :period, :reported, :surprise1, :surprise2)", record)
+		cur.execute("insert or replace into " + EARNING_HISTORY_TABLE + " values(:ticker, :date, :estimate, :period, :reported, :surprise1, :surprise2)", record)
 
-	cur1.execute("select count(*) from earning where ticker=:ticker", {'ticker':ticker})
-	print("After update, we have {} earning records".format(cur1.fetchall()))
-	conn1.commit()
+	cur.execute("select count(*) from " + EARNING_HISTORY_TABLE + " where ticker=:ticker", {'ticker':ticker})
+	print("After update, we have {} earning records".format(cur.fetchall()))
+	conn.commit()
+
+def save_earning_schedule(list_schedule):
+	msqlite.backup_table(SCHEDULE_TABLE, None, conn)
+	for schedule in list_schedule:
+		cur.execute("insert or replace into " + SCHEDULE_TABLE + "(ticker, date, eps, last_year_date, last_year_eps, period, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
+	conn.commit()
 
 def save_test_trades(ticker, trades):
 	trades.reset_index(inplace=True)
@@ -92,13 +103,6 @@ def save_test_trades(ticker, trades):
 	conn2.commit();
 
 
-
-def save_earning_schedule(list_schedule):
-	#backup first
-	msqlite.backup_table(SCHEDULE_TABLE, None, conn)
-	for schedule in list_schedule:
-		cur.execute("insert or replace into " + SCHEDULE_TABLE + "(ticker, date, eps, last_year_date, last_year_eps, period, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
-	conn.commit()
 
 def test_summary(ticker, quarter):
 	params = {'ticker' : ticker, 'quarter' : quarter}
