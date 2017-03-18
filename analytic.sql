@@ -39,10 +39,6 @@ where a.ticker = b.ticker
 
 
 ---Max Profit over Min holding 
-select * from (select * from target_stocks_test_trades group by ticker, period having (sell_days - buy_days) = min(sell_days - buy_days)) group by ticker having profit2 = max(profit2)
-select ticker, buy_days, sell_days, profit2 from (select * from target_stocks_test_trades group by ticker, period having (sell_days - buy_days) = min(sell_days - buy_days)) group by ticker having profit2 = max(profit2)
-
----Trading Date
 select a.*, b.date from 
 (select ticker, buy_days, sell_days, profit2 from (select * from target_stocks_test_trades group by ticker, period having (sell_days - buy_days) = min(sell_days - buy_days)) group by ticker having profit2 = max(profit2)) a,
 target_stocks b
@@ -51,7 +47,7 @@ where a.ticker = b.ticker;
 
 ---Min holding ov Max profit
 select a.*, b.date from 
-(select ticker, buy_days, sell_days, profit2 from (select * from target_stocks_test_trades group by ticker, period having profit2 = max(profit2)) group by ticker having having (sell_days - buy_days) = min(sell_days - buy_days)) a,
+(select ticker, buy_days, sell_days, profit2 from (select * from target_stocks_test_trades group by ticker having profit2 = max(profit2)) group by ticker having (sell_days - buy_days) = min(sell_days - buy_days)) a,
 target_stocks b
 where a.ticker = b.ticker;
 

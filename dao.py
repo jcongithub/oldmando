@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 
 SCHEDULE_TABLE = "s.schedule"
-EARNING_HISTORY_TABLE = "earning"
+EARNING_HISTORY_TABLE = "earnings"
 
 pd.options.display.width = 1000
 
