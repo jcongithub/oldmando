@@ -119,68 +119,50 @@ def merge_df(p1, p2):
 #####################################################################################################
 ##   Download stock price history, stock earnings history
 def download_earning_history(tickers):
-	dao.backup_earning_history()
+	skipped = []
 	for ticker in tickers:
-		print('Downloading earning history: {}'.format(ticker))
-		base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
-		params = {'ticker'           : ticker,
-				  'pg_no'            : 1,
-				  'recordsToDisplay' : 100,
-				  'maxNoOfPages'     : 10,
-				  'recordsPerPage'   : 25,
-				  'showAllFlag'      :'yes'}
+		try:
+			print('Downloading earning history: {}'.format(ticker))
+			base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
+			params = {'ticker'           : ticker,
+					  'pg_no'            : 1,
+					  'recordsToDisplay' : 100,
+					  'maxNoOfPages'     : 10,
+					  'recordsPerPage'   : 25,
+					  'showAllFlag'      :'yes'}
 
-		response = requests.get(base_url, params=params)
-		text = response.text	
-		soup = BeautifulSoup(text, 'html.parser')
-		divs = soup.find_all('div', {'id' : 'divPrint'})
-		records = []
-		if(len(divs) > 0):
-			tables = divs[0].find_all('table')
-			if(len(tables) > 1):
-				trs = tables[1].find_all('tr')
+			response = requests.get(base_url, params=params)
+			text = response.text	
+			soup = BeautifulSoup(text, 'html.parser')
+			divs = soup.find_all('div', {'id' : 'divPrint'})
+			records = []
+			if(len(divs) > 0):
+				tables = divs[0].find_all('table')
+				if(len(tables) > 1):
+					trs = tables[1].find_all('tr')
 
-				for i in range(1, len(trs)):
-					tds = trs[i].find_all('td')
-					record = {
-						'date'      : datetime.strptime(tds[0].text.strip(), '%d-%b-%y').date().isoformat(),
-						'period'    : tds[1].text.strip(),
-						'estimate'  : tds[2].text.strip(),
-						'reported'  : tds[3].text.strip(),
-						'surprise1' : tds[4].text.strip(),
-						'surprise2' : tds[4].text.strip(),
-					}
-					records.append(record)
+					for i in range(1, len(trs)):
+						tds = trs[i].find_all('td')
+						record = {
+							'date'      : datetime.strptime(tds[0].text.strip(), '%d-%b-%y').date().isoformat(),
+							'period'    : tds[1].text.strip(),
+							'estimate'  : tds[2].text.strip(),
+							'reported'  : tds[3].text.strip(),
+							'surprise1' : tds[4].text.strip(),
+							'surprise2' : tds[4].text.strip(),
+						}
+						records.append(record)
 
-				dao.save_earning_history(ticker, records)
+					dao.save_earning_history(ticker, records)
+		except:
+			print(sys.exc_info())
+			skipped.append(ticker)
 
-def save_price(ticker, price_file):
-	conn = sqlite3.connect('db/history')
-	cur = conn.cursor()
-	print("database opened")
+	if(len(skipped) > 0):
+		print("Cannot download earning history data for following tickerss")
+		print(skipped)
 
-	cur.execute("select count(*) from price where ticker=:ticker", {'ticker':ticker})
-	print("Currently we have {} days prices".format(cur.fetchall()))
-
-	print("file:{} ticker:{}".format(price_file, ticker))
-	with open(price_file) as f:
-		next(f)
-		for line in f:
-			line = line.rstrip('\n')
-			fields = line.split(",")
-			fields.insert(0, ticker)
-			try:
-				cur.execute("insert or replace into price values(?, ?, ?, ?, ?, ?, ?, ?)", fields)
-			except:
-				print("{} - {}".format(fields, sys.exc_info()))
-
-	cur.execute("select count(*) from price where ticker=:ticker", {'ticker':ticker})
-	print("After updated we have {} days prices".format(cur.fetchall()))
-
-	conn.commit()
-	conn.close()	
-
-def download_price(tickers):
+def download_price_history(tickers):
 	skipped = []
 	for ticker in tickers:
 		price_file = price_file_name(ticker) 
@@ -194,10 +176,25 @@ def download_price(tickers):
 					  'f' : today.year}
 
 			response = requests.get(url, params=params)
-			content_to_file(price_file, response.text)
-			print("{} price file saved at {}".format(ticker, price_file))
-			save_price(ticker, price_file)
+			print(response.text)
+			lines = [line for line in response.text.split('\n') if line]
+			records = []
+			for line in lines:
+				fields = line.split(",")
+				record = {'ticker' : ticker, 
+							'date' : fields[0], 
+							'open' : fields[1],
+							'high' : fields[2],
+							'low'  : fields[3],
+							'close': fields[4],
+							'volumn':fields[5], 
+							'adj_close' : fields[6]}
+				records.append(record)
+
+			dao.save_price_history(ticker, records)
+
 		except:
+			print(sys.exc_info())
 			skipped.append(ticker)
 	
 	if(len(skipped) > 0):
@@ -211,7 +208,8 @@ def content_to_file(file_path, content):
 		f.write(content)
 
 def download_earning_schedule(start_date=datetime.now(), number_days = 1, update_database = True):
-	
+	print("TOBE FINISHED")
+	exit
 	records = []
 
 	for i in range(number_days):
@@ -240,11 +238,11 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 				record = {
 					'company' : company,
 					'ticker'  : ticker.lower(),
-					'date'    : tds[2].text.strip(),
+					'date'    : tds[2].text.strip(), #covert it into yyyy-MM-dd
 					'month'   : tds[3].text.strip(),
 					'eps'     : tds[4].text.strip(),
 					'numests' : tds[5].text.strip(),
-					'last_year_date' : tds[6].text.strip(),
+					'last_year_date' : tds[6].text.strip(), #convert it into yyyy-MM-dd
 					'last_year_eps' : tds[7].text.strip(),
 				}
 

@@ -519,25 +519,53 @@ def trading_signal(start_date = datetime.now(), number_days = 20):
 	return winning_stocks
 
 
-def weekly_calculation():
+#def weekly_calculation():
 	#download earning schedule
-	start_date = datetime.now() + timedelta(days = 14)
-	num_days = 7
-	earning_schedule = downloader.download_earning_schedule(start_date, num_days)
-	df = pd.DataFrame(earning_schedule)
-	print(df)
+	#start_date = datetime.now() + timedelta(days = 14)
+	#num_days = 7
+	#print("Downloading {} days earning schedule from {}".format(num_days, start_date.strftime('%Y-%m-%d')))
+	#earning_schedule = downloader.download_earning_schedule(start_date, num_days)
+	#print(pd.DataFrame(earning_schedule))
+	#tickers = [s['ticker'] for s in earning_schedule]
+	#print(tickers)
 
 	#save earning schedule
-	dao.save_earning_schedule(earning_schedule);
+	##dao.save_earning_schedule(earning_schedule);
+	##print("Earning schedule saved")
 
-	#download price and earning history
+	#download price history
+	##print("Downloading price history for {}".format(tickers))
+	##downloader.download_price_history(tickers)
+
+	#download earning history
+	##print("Downloading earning history for {}".format(tickers))
+	##downloader.download_earning_history(tickers)
+
 	#calculate back test trades
+	#create_test_trades(tickers)
+	
 	#generate trade plan
-
-
 
 
 pd.options.display.width = 1000
 
-#if __name__ == '__main__':
-#	print(csv2html('data/signals.csv', 'dec.html'))
+if __name__ == '__main__':
+	# 1. get next 15 days earning report stocks
+	print("Find target stocks for new 20 days")
+	scheduled_stocks = dao.schedule(number_days=20)
+	df_target_stocks = pd.DataFrame(scheduled_stocks)
+	df_target_stocks.set_index(['ticker'], inplace=True)
+	print(df_target_stocks)
+
+	tickers = [row['ticker'] for row in scheduled_stocks]
+	print(tickers)
+
+	# 2. 
+	s = dao.test_trade_summary(tickers)
+	target_stock_test_summary = [row for row in s if row['ticker'] in tickers]
+	df_target_stock_test_summary = pd.DataFrame(target_stock_test_summary)
+	df_target_stock_test_summary.set_index(['ticker'], inplace=True)
+	print(df_target_stock_test_summary)
+
+	df_target_stocks = df_target_stocks.merge(df_target_stock_test_summary, left_index=True, right_index=True, how='outer')
+	print(df_target_stocks)

@@ -17,12 +17,49 @@ create table trades as
 	where a.ticker = b.ticker;
 
 
----find how many winning periods vs tested periods and save result into wins table
-create table wins as 
+---find how many winning periods vs tested all periods and save result into wins table
+create table a.wins as 
 select a.ticker, b.win_periods, a.tested_periods
-from (select ticker, count(*) as tested_periods from (select ticker, period from trades group by ticker, period) group by ticker) a
-left join (select ticker, count(*) as win_periods from (select ticker, period from trades where profit > 0 group by ticker, period) group by ticker) b
+from (select ticker, count(*) as tested_periods from (select ticker, period from t.trades group by ticker, period) group by ticker) a
+left join (select ticker, count(*) as win_periods from (select ticker, period from t.trades where profit > 0 group by ticker, period) group by ticker) b
 on a.ticker = b.ticker
+
+--- 1. Find how many periods tested for each quarter for each stock
+select ticker, substr(period, 0, 4) as quarter, count(*) as total_periods_tested
+FROM (select ticker, period from t.trades group by ticker, period ) 
+GROUP BY ticker, quarter
+
+--- 2 Find how many win periods for each quarter for each stock
+select ticker, substr(period, 0, 4) as quarter, count(*) as win_periods_tested
+FROM (select ticker, period from t.trades where profit > 0 group by ticker, period ) 
+GROUP BY ticker, quarter
+
+--- 3. Combin 1 and 2
+CREATE TABLE a.quarter_win AS
+SELECT a.ticker, a.quarter, a.total_periods_tested, b.win_periods_tested
+FROM (
+select ticker, substr(period, 0, 4) as quarter, count(*) as total_periods_tested
+FROM (select ticker, period from t.trades group by ticker, period ) 
+GROUP BY ticker, quarter
+) a
+LEFT JOIN (
+select ticker, substr(period, 0, 4) as quarter, count(*) as win_periods_tested
+FROM (select ticker, period from t.trades where profit > 0 group by ticker, period ) 
+GROUP BY ticker, quarter
+) b
+ON a.ticker = b.ticker and a.quarter = b.quarter
+
+---Find target trading stocks whose earning report scheduled released in next 20 days
+---1. all wins over all tested period
+SELECT a.ticker, a.date, a.period, b.win_periods, b.tested_periods
+FROM s.schedule a
+LEFT JOIN a.wins b
+ON a.ticker = b.ticker
+WHERE a.date > '2017-03-18' and b.ticker IS NOT NULL and b.tested_periods - b.win_periods < 2  and b.tested_periods > 5
+ORDER BY a.date
+---2. all wins over coming earning quarter
+
+
 
 ---find stocks wins all tested periods
 select * from wins where tested_periods = win_periods and tested_periods > 10;

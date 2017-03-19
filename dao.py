@@ -8,6 +8,8 @@ from datetime import timedelta
 
 SCHEDULE_TABLE = "s.schedule"
 EARNING_HISTORY_TABLE = "earnings"
+PRICE_HISTORY_TABLE = "prices"
+TRADE_TABLE = "t.trades"
 
 pd.options.display.width = 1000
 
@@ -18,13 +20,14 @@ cur.execute("ATTACH DATABASE 'db/schedule' AS s")
 
 def price1(ticker, date=None):
 	mpf.task_start("QueryPrice")
+	select = "select date,open,high,low,close,volume,adj_close from " + PRICE_HISTORY_TABLE
+
 	if(date is None):
-		cur1.execute("select date,open,high,low,close,volume,adj_close from price where ticker=:ticker order by date desc", {'ticker' : ticker})
+		cur = conn.execute(select + " where ticker=:ticker order by date desc", {'ticker' : ticker})
 	else:
-		cur1.execute("select date,open,high,low,close,volume,adj_close from price where ticker=:ticker and date=:date order by date desc", 
-			{'ticker' : ticker, 'date': date})
+		cur = conn.execute(select + " where ticker=:ticker and date=:date order by date desc", {'ticker' : ticker, 'date': date})
 	mpf.task_end("QueryPrice")
-	return cur1.fetchall()
+	return cur.fetchall()
 
 def price(ticker, date=None):
 	p = price1(ticker, date)
@@ -36,9 +39,9 @@ def price(ticker, date=None):
 	
 def earning(ticker):
 	TODAY = datetime.now().strftime('%Y-%m-%d')
-	cur1.execute("select date,estimate,period,reported,surprise1,surprise2 from earning where ticker=:ticker and date < :date order by date desc", {'ticker' : ticker, 'date' : TODAY})
-	prices = pd.DataFrame(cur1.fetchall(), columns=['date','estimate','period','reported','surprise1','surprise2'])
-	return prices.set_index(['date'])
+	cur = conn.execute("select date,estimate,period,reported,surprise1,surprise2 from " + EARNING_HISTORY_TABLE + " where ticker=:ticker and date < :date order by date desc", {'ticker' : ticker, 'date' : TODAY})
+	earnings = pd.DataFrame(cur.fetchall(), columns=['date','estimate','period','reported','surprise1','surprise2'])
+	return earnings.set_index(['date'])
 
 def sp500():
 	file_name = 'data/sp500.csv'
@@ -49,12 +52,12 @@ def sp500():
 
 def schedule(start_date=datetime.now(), number_days=15, tested_stocks_only=True):
 	end_date = start_date + timedelta(days = number_days)
-	start = start_date.strftime('%m/%d/%Y')
-	end = end_date.strftime('%m/%d/%Y')
+	start = start_date.strftime('%Y-%m-%d')
+	end = end_date.strftime('%Y-%m-%d')
 
-	select = "SELECT a.ticker, a.date, substr(a.month, 0, 4) FROM s.schedule a"
+	select = "SELECT a.ticker, a.date, substr(a.period, 0, 4) FROM " + SCHEDULE_TABLE + " a"
 	if tested_stocks_only:
-		sql = select + " LEFT JOIN (SELECT DISTINCT ticker FROM t.trades) b ON a.ticker = b.ticker WHERE b.ticker IS NOT NULL AND a.date >= :start and a.date < :end"
+		sql = select + " LEFT JOIN (SELECT DISTINCT ticker FROM " + TRADE_TABLE + ") b ON a.ticker = b.ticker WHERE b.ticker IS NOT NULL AND a.date >= :start and a.date < :end"
 	else:
 		sql = select + " WHERE a.date >= :start and a.date < :end"
 
@@ -71,10 +74,24 @@ def all_stock_symbols():
 def backup_earning_history():
 	msqlite.backup_table(EARNING_HISTORY_TABLE, None, conn)
 	
+def save_price_history(ticker, records):
+	print("Saving {} price history: {} days price".format(ticker, len(records)))
+	count = msqlite.table_row_count(PRICE_HISTORY_TABLE, conn)
+	print("Currently, we have {} price records".format(count))
+
+	for record in records:
+		record['ticker'] = ticker
+		cur.execute("INSERT OR REPLACE INTO " + PRICE_HISTORY_TABLE + " values(:ticker, :date, :open, :high, :low, :close, :volumn, :adj_close)", record)
+
+	count = msqlite.table_row_count(PRICE_HISTORY_TABLE, conn)
+	print("After update, we have {} price records".format(count))
+
+	conn.commit()
+
 def save_earning_history(ticker, records):
 	print("Saving {} earning history: {} earnings".format(ticker, len(records)))
-	cur.execute("select count(*) from " + EARNING_HISTORY_TABLE + " where ticker=:ticker", {'ticker':ticker})
-	print("Currently, we have {} earning records".format(cur.fetchall()))
+	count = msqlite.table_row_count(EARNING_HISTORY_TABLE, conn)
+	print("Currently, we have {} earning records".format(count))
 
 	for record in records:
 		record['ticker'] = ticker
@@ -82,25 +99,27 @@ def save_earning_history(ticker, records):
 
 	cur.execute("select count(*) from " + EARNING_HISTORY_TABLE + " where ticker=:ticker", {'ticker':ticker})
 	print("After update, we have {} earning records".format(cur.fetchall()))
+
 	conn.commit()
 
 def save_earning_schedule(list_schedule):
 	msqlite.backup_table(SCHEDULE_TABLE, None, conn)
 	for schedule in list_schedule:
 		cur.execute("insert or replace into " + SCHEDULE_TABLE + "(ticker, date, eps, last_year_date, last_year_eps, period, numests, company ) values(:ticker,:date, :eps, :last_year_date, :last_year_eps, :month, :numests, :company)", schedule)
+
 	conn.commit()
 
 def save_test_trades(ticker, trades):
 	trades.reset_index(inplace=True)
 	print("\tDelete previous created {} test trades".format(ticker))
-	cur2.execute("delete from trades where ticker=:ticker", {'ticker' : ticker})
+	conn.execute("delete from " + TRADE_TABLE + " where ticker=:ticker", {'ticker' : ticker})
 
 	for index, trade in trades.iterrows():
 		fields = trade.tolist()
 		fields.insert(0, ticker)
-		cur2.execute("insert or replace into trades values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", fields)
+		conn.execute("insert or replace into trades values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", fields)
 
-	conn2.commit();
+	conn.commit();
 
 
 
@@ -177,6 +196,14 @@ def find_consective_winning_stocks_on_quarter(quarter, start_year, end_year):
 	profitable_stocks = cur2.fetchall()
 	return [stock[0] for stock in profitable_stocks]	
 
+
+def test_trade_summary(tickers):
+	tested_periods_count = "select ticker, count(*) as tested_periods from (select ticker, period from " + TRADE_TABLE + " group by ticker, period) group by ticker"
+	win_periods_count = "select ticker, count(*) as win_periods from (select ticker, period from " + TRADE_TABLE + " where profit > 0 group by ticker, period) group by ticker"
+	
+	sql = "SELECT a.ticker, b.win_periods, a.tested_periods FROM ({}) a, ({}) b ON a.ticker = b.ticker".format(tested_periods_count, win_periods_count)
+	rows = conn.execute(sql).fetchall()
+	return [{'ticker' : row[0], 'win_periods' : row[1], 'tested_periods' : row[2]} for row in rows]
 
 
 
