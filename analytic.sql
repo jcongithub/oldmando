@@ -1,5 +1,7 @@
 ATTACH DATABASE schedule AS s;
 ATTACH DATABASE trades AS t;
+ATTACH DATABASE analytics AS a;
+
 
 ---get all stocks which have been back tested
 create table target_stocks as 
@@ -57,62 +59,30 @@ LEFT JOIN a.wins b
 ON a.ticker = b.ticker
 WHERE a.date > '2017-03-18' and b.ticker IS NOT NULL and b.tested_periods - b.win_periods < 2  and b.tested_periods > 5
 ORDER BY a.date
+
 ---2. all wins over coming earning quarter
+SELECT a.ticker, a.date, substr(a.period, 0, 4) as quarter
+FROM s.schedule a, a.quarter_win b
+WHERE date > '2017-03-18' and a.ticker = b.ticker and substr(a.period, 0, 4) = b.quarter and b.total_periods_tested = b.win_periods_tested
+ORDER BY date
 
-
-
----find stocks wins all tested periods
-select * from wins where tested_periods = win_periods and tested_periods > 10;
-
----Trading signals
-create table target_stocks as select a.ticker as ticker, a.date as date, a.period as period from stocks a, (select ticker from wins where tested_periods = win_periods and tested_periods > 10) b where a.ticker = b.ticker and a.date > '20170313'
-
-create table target_stocks_test_trades as 
-select a.* 
-from trades a, target_stocks b
-where a.ticker = b.ticker
-	and a.profit > 0
-	and substr(a.period, 0, 4) = substr(b.period, 0, 4) 
-
-
----Max Profit over Min holding 
-select a.*, b.date from 
-(select ticker, buy_days, sell_days, profit2 from (select * from target_stocks_test_trades group by ticker, period having (sell_days - buy_days) = min(sell_days - buy_days)) group by ticker having profit2 = max(profit2)) a,
-target_stocks b
-where a.ticker = b.ticker;
-
-
----Min holding ov Max profit
-select a.*, b.date from 
-(select ticker, buy_days, sell_days, profit2 from (select * from target_stocks_test_trades group by ticker having profit2 = max(profit2)) group by ticker having (sell_days - buy_days) = min(sell_days - buy_days)) a,
-target_stocks b
-where a.ticker = b.ticker;
-
-
-
----Max profit
-select * from trades where ticker = 'adbe' and profit > 0 and substr(period, 0, 4) = 'Feb' group by period having max(profit2)
-
-
-
-
-
-
-
- and substr(b.month, 0, 4) = substr(a.month, 0, 4);
-
-
-select date, substr(date, 7, 4) || substr(date, 0, 3) || substr(date, 4, 2)  as date2  from target_stocks;
-
-
-CREATE TABLE IF NOT EXISTS "russell3000"(
-  "#" TEXT,
-  "ticker" TEXT,
-  "StartDate" TEXT,
-  "Size(MB)" TEXT,
-  "Description" TEXT,
-  "Exchange" TEXT,
-  "Industry" TEXT,
-  "Sector" TEXT
-);
-
+----Max profit over min holding date stragety for upcoming earning report stocks which have all winning tested period
+SELECT * 
+FROM (
+  ---Finds min holding date 
+  SELECT a.ticker as ticker, a.date as date, a.quarter as quarter, b.period as period, b.buy_days as buy_days, b.sell_days as sell_days, b.profit2 as profit2
+  FROM
+  (
+    --- select upcoming earning reporting stocks which all winning tested quarter 
+    SELECT a.ticker as ticker, a.date as date, substr(a.period, 0, 4) as quarter
+    FROM s.schedule a, a.quarter_win b
+    WHERE date > '2017-03-18' and a.ticker = b.ticker and substr(a.period, 0, 4) = b.quarter and b.total_periods_tested = b.win_periods_tested
+    ORDER BY date
+  ) a, t.trades b
+  WHERE a.ticker = b.ticker and a.quarter = substr(b.period, 0, 4) and b.profit > 0
+  GROUP BY a.ticker, b.period
+  HAVING (b.sell_days - b.buy_days) = min(b.sell_days - b.buy_days)
+)
+GROUP BY ticker 
+HAVING profit2 = max(profit2)
+ORDER BY date

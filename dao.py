@@ -17,6 +17,7 @@ conn = sqlite3.connect('db/history')
 cur = conn.cursor()
 cur.execute("ATTACH DATABASE 'db/trades' AS t")
 cur.execute("ATTACH DATABASE 'db/schedule' AS s")
+cur.execute("ATTACH DATABASE 'db/analytics' AS a")
 
 def price1(ticker, date=None):
 	mpf.task_start("QueryPrice")

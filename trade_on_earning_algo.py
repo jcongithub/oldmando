@@ -550,22 +550,38 @@ def trading_signal(start_date = datetime.now(), number_days = 20):
 pd.options.display.width = 1000
 
 if __name__ == '__main__':
-	# 1. get next 15 days earning report stocks
-	print("Find target stocks for new 20 days")
-	scheduled_stocks = dao.schedule(number_days=20)
-	df_target_stocks = pd.DataFrame(scheduled_stocks)
-	df_target_stocks.set_index(['ticker'], inplace=True)
-	print(df_target_stocks)
+	sql = 	('SELECT *' 
+			' FROM ('
+  			'	SELECT a.ticker as ticker, a.date as date, a.quarter as quarter, b.period as period, b.buy_days as buy_days, b.sell_days as sell_days, b.profit2 as profit2'
+  			'	FROM ('
+    		'		SELECT a.ticker as ticker, a.date as date, substr(a.period, 0, 4) as quarter'
+    		'		FROM s.schedule a, a.quarter_win b'
+    		'		WHERE date > :date and a.ticker = b.ticker and substr(a.period, 0, 4) = b.quarter and b.total_periods_tested = b.win_periods_tested'
+    		'		ORDER BY date'
+  			'	) a, t.trades b'
+  			'	WHERE a.ticker = b.ticker and a.quarter = substr(b.period, 0, 4) and b.profit > 0'
+  			'	GROUP BY a.ticker, b.period'
+  			'	HAVING (b.sell_days - b.buy_days) = min(b.sell_days - b.buy_days)'
+			' )'
+			' GROUP BY ticker '
+			' HAVING profit2 = max(profit2)'
+			' ORDER BY date')
 
-	tickers = [row['ticker'] for row in scheduled_stocks]
-	print(tickers)
+	print("Calling SQL:{}".format(sql))
+	
+	df = pd.read_sql(sql, dao.conn, params = {'date' : '2017-04-12'})
+	
+	print(df)
+	table = '<table>'
+	table = table + '<tr><th>' + '</th><th>'.join(df.columns) + '</th></trades>'
 
-	# 2. 
-	s = dao.test_trade_summary(tickers)
-	target_stock_test_summary = [row for row in s if row['ticker'] in tickers]
-	df_target_stock_test_summary = pd.DataFrame(target_stock_test_summary)
-	df_target_stock_test_summary.set_index(['ticker'], inplace=True)
-	print(df_target_stock_test_summary)
+	rows = df.values.tolist()
 
-	df_target_stocks = df_target_stocks.merge(df_target_stock_test_summary, left_index=True, right_index=True, how='outer')
-	print(df_target_stocks)
+	for row in rows:
+		table_row = '<tr><td>' + '</td><td>'.join([str(cell) for cell in row]) + '</td></tr>'
+		table = table + table_row
+	
+	table = table + '</table>'
+	html = '<html><head><link rel="stylesheet" type="text/css" href="a.css"></head>' + table + '</html>'
+
+	print(html)

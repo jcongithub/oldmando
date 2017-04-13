@@ -208,8 +208,8 @@ def content_to_file(file_path, content):
 		f.write(content)
 
 def download_earning_schedule(start_date=datetime.now(), number_days = 1, update_database = True):
-	print("TOBE FINISHED")
-	exit
+	#print("TOBE FINISHED")
+	#exit
 	records = []
 
 	for i in range(number_days):
@@ -249,7 +249,7 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 				records.append(record)
 
 			print("{} companies on {}".format(len(records), sdate))			
-			#dao.save_earning_schedule(records)
+			dao.save_earning_schedule(records)
 		else:
 			print("downloading faild")
 	
