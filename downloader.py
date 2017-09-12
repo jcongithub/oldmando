@@ -118,8 +118,9 @@ def merge_df(p1, p2):
 
 #####################################################################################################
 ##   Download stock price history, stock earnings history
+
 def download_earning_history(tickers):
-	skipped = []
+	earnings = {};
 	for ticker in tickers:
 		try:
 			print('Downloading earning history: {}'.format(ticker))
@@ -153,14 +154,12 @@ def download_earning_history(tickers):
 						}
 						records.append(record)
 
-					dao.save_earning_history(ticker, records)
+					earnings[ticker] = pd.DataFrame(records)
+					#dao.save_earning_history(ticker, records)
 		except:
 			print(sys.exc_info())
-			skipped.append(ticker)
 
-	if(len(skipped) > 0):
-		print("Cannot download earning history data for following tickerss")
-		print(skipped)
+	return earnings;
 
 def download_price_history(tickers):
 	skipped = []
