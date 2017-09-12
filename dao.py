@@ -19,21 +19,12 @@ cur.execute("ATTACH DATABASE 'db/trades' AS t")
 cur.execute("ATTACH DATABASE 'db/schedule' AS s")
 cur.execute("ATTACH DATABASE 'db/analytics' AS a")
 
+def all_stock_symbols():
+	return pd.read_sql('select * from stocks', conn, index_col='ticker')
+
 def price(ticker, date=None):
-	mpf.task_start("QueryPrice")
-	select = "select date,open,high,low,close,volume,adj_close from " + PRICE_HISTORY_TABLE
-
-	if(date is None):
-		cur = conn.execute(select + " where ticker=:ticker order by date desc", {'ticker' : ticker})
-	else:
-		cur = conn.execute(select + " where ticker=:ticker and date=:date order by date desc", {'ticker' : ticker, 'date': date})
-
-	p = cur.fetchall()
-	prices = pd.DataFrame(p, columns=['date','open','high','low','close','volume','adj_close'])
-	prices = prices.set_index(['date'])
-
-	mpf.task_end("QueryPrice")
-	return prices
+	sql = "select date,open,high,low,close,volume,adj_close from " + PRICE_HISTORY_TABLE + " where ticker='" + ticker + "' order by date desc"
+	return pd.read_sql(sql, conn)
 
 def earning(ticker):
 	TODAY = datetime.now().strftime('%Y-%m-%d')
@@ -47,7 +38,8 @@ def sp500():
 		download_sp500_company_list()
 
 	return pd.read_csv(file_name, index_col=['ticker'])
-
+	
+##############################################################################################
 def schedule(start_date=datetime.now(), number_days=15, tested_stocks_only=True):
 	end_date = start_date + timedelta(days = number_days)
 	start = start_date.strftime('%Y-%m-%d')
@@ -64,8 +56,6 @@ def schedule(start_date=datetime.now(), number_days=15, tested_stocks_only=True)
 	rows = cur.fetchall()
 	return [{'ticker':row[0], 'date':row[1], 'quarter': row[2]} for row in rows]
 
-def all_stock_symbols():
-	return pd.read_sql('select * from stocks', conn, index_col='ticker')
 
 def backup_earning_history():
 	msqlite.backup_table(EARNING_HISTORY_TABLE, None, conn)
