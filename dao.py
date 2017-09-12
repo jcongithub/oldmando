@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 
 SCHEDULE_TABLE = "s.schedule"
-EARNING_HISTORY_TABLE = "earnings"
+EARNING_HISTORY_TABLE = "earning"
 PRICE_HISTORY_TABLE = "prices"
 TRADE_TABLE = "t.trades"
 
@@ -19,7 +19,7 @@ cur.execute("ATTACH DATABASE 'db/trades' AS t")
 cur.execute("ATTACH DATABASE 'db/schedule' AS s")
 cur.execute("ATTACH DATABASE 'db/analytics' AS a")
 
-def price1(ticker, date=None):
+def price(ticker, date=None):
 	mpf.task_start("QueryPrice")
 	select = "select date,open,high,low,close,volume,adj_close from " + PRICE_HISTORY_TABLE
 
@@ -27,17 +27,14 @@ def price1(ticker, date=None):
 		cur = conn.execute(select + " where ticker=:ticker order by date desc", {'ticker' : ticker})
 	else:
 		cur = conn.execute(select + " where ticker=:ticker and date=:date order by date desc", {'ticker' : ticker, 'date': date})
-	mpf.task_end("QueryPrice")
-	return cur.fetchall()
 
-def price(ticker, date=None):
-	p = price1(ticker, date)
-	mpf.task_start("CreatePriceDataFrame")
+	p = cur.fetchall()
 	prices = pd.DataFrame(p, columns=['date','open','high','low','close','volume','adj_close'])
 	prices = prices.set_index(['date'])
-	mpf.task_end("CreatePriceDataFrame")
-	return prices;
-	
+
+	mpf.task_end("QueryPrice")
+	return prices
+
 def earning(ticker):
 	TODAY = datetime.now().strftime('%Y-%m-%d')
 	cur = conn.execute("select date,estimate,period,reported,surprise1,surprise2 from " + EARNING_HISTORY_TABLE + " where ticker=:ticker and date < :date order by date desc", {'ticker' : ticker, 'date' : TODAY})
@@ -68,9 +65,7 @@ def schedule(start_date=datetime.now(), number_days=15, tested_stocks_only=True)
 	return [{'ticker':row[0], 'date':row[1], 'quarter': row[2]} for row in rows]
 
 def all_stock_symbols():
-	cur1.execute("SELECT symbol FROM stock");
-	rows = cur1.fetchall()
-	return [row[0] for row in rows]	
+	return pd.read_sql('select * from stocks', conn, index_col='ticker')
 
 def backup_earning_history():
 	msqlite.backup_table(EARNING_HISTORY_TABLE, None, conn)
