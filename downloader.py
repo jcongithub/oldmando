@@ -311,7 +311,14 @@ def load_earning_data():
 	conn.close()	
 
 
+def import_rusell3000():
+	df = pd.read_csv('db/rusell3000.backup', delim_whitespace=True, header=1, names=['symbol', 'start_date', 'size', 'name', 'exchange', 'industry', 'sector'])
+	df.rename(columns={'symbol':'ticker'})
+	df = df.set_index(['symbol'], drop=True)
+	df.to_sql('stocks', conn)
 
 #if __name__ == '__main__':
 #	load_price_data()
 #	load_earning_data()	
+
+
