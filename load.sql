@@ -1,5 +1,5 @@
 --- Load database
-create table earning
+create table earnings
 (
 	ticker varchar not null,
 	date varchar,
@@ -11,7 +11,7 @@ create table earning
 	constraint earning_pk primary key (ticker, period)
 );
 
-create table price
+create table prices
 (
 	ticker varchar not null,
 	date varchar not null,

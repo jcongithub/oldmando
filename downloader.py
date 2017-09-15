@@ -16,6 +16,9 @@ import fileinput
 import sqlite3
 import dao
 import msqlite
+import urllib
+from dao import conn
+
 
 pd.options.display.width = 1000
 
@@ -311,14 +314,80 @@ def load_earning_data():
 	conn.close()	
 
 
+def import_sp500():
+	df = pd.read_csv('data/sp500.csv', names=['industry', 'sector', 'name', 'ticker'])
+	df['start_date'] = ''
+	df['size'] = ''
+	df['exchange'] = ''
+	df.to_sql('stocks', conn)
+
 def import_rusell3000():
-	df = pd.read_csv('db/rusell3000.backup', delim_whitespace=True, header=1, names=['symbol', 'start_date', 'size', 'name', 'exchange', 'industry', 'sector'])
+	df = pd.read_csv('data/sp500.csv', delim_whitespace=True, header=1, names=['symbol', 'start_date', 'size', 'name', 'exchange', 'industry', 'sector'])
 	df.rename(columns={'symbol':'ticker'})
 	df = df.set_index(['symbol'], drop=True)
 	df.to_sql('stocks', conn)
 
-#if __name__ == '__main__':
-#	load_price_data()
-#	load_earning_data()	
+def merge_price():
+	stocks = pd.read_sql("select * from stocks", conn)
+	for index, row in stocks.iterrows():
+		ticker = row['ticker']
+		print("merge price " + ticker)
+		import_price(ticker)
+
+def import_price(ticker):
+	file_name = 'data/' + ticker + '.price.csv'
+	if(isfile(file_name)):
+		df = pd.read_csv(file_name)	
+		df = df.rename(columns={'Date'   : 'date',
+							   'Open'   : 'open', 
+							   'High'   : 'high',
+							   'Low'    : 'low',
+							   'Close'  : 'close',
+							   'Volume' : 'volume'})
+
+		df['date'] = df.apply(lambda row : strfftime(row['date'], '%Y-%m-%d', '%Y%m%d'), axis=1)
+
+		dao.save_price_history(ticker, df.T.to_dict().values())
+
+def import_earning(ticker):
+	file_name = 'data/' + ticker + '.earning.csv'
+	df = pd.read_csv(file_name, header=1, names=['date','estimate','period','quarter','reported','surprise1','surprise2'])
+	print(df)
+	
+	dao.save_earning_history(ticker, df.T.to_dict().values())
+
+	
+
+def download_all_price_google():
+	stocks = pd.read_sql("select * from stocks", conn)
+	for index, row in stocks.iterrows():
+		ticker = row['ticker']
+		print("downloading price of " + ticker)
+		try:
+			download_price_google(ticker)
+		except:
+			print(sys.exc_info())
+
+
+def download_price_google(ticker):
+	#date,open,high,low,close,volume,adj close
+
+	print('downloading prices:' + ticker)
+	url = "http://finance.google.com/finance/historical"
+	params = {'q'         : ticker, 
+			  'startdate' : '20000101', 
+			  'enddate'   : '20170914', 
+			  'output'    : 'csv'}
+
+	url = url + '?' + urllib.parse.urlencode(params)
+	
+	print(url)
+
+	file_name = 'data/' + ticker + ".price.csv"
+	urllib.request.urlretrieve(url, )
+	return file_name
+
+def strfftime(s, f1, f2):
+	return time.strftime(f2, time.strptime(s, f1))
 
 

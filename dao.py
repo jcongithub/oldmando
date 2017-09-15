@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 
 SCHEDULE_TABLE = "s.schedule"
-EARNING_HISTORY_TABLE = "earning"
+EARNING_HISTORY_TABLE = "earnings"
 PRICE_HISTORY_TABLE = "prices"
 TRADE_TABLE = "t.trades"
 
@@ -61,32 +61,44 @@ def backup_earning_history():
 	msqlite.backup_table(EARNING_HISTORY_TABLE, None, conn)
 	
 def save_price_history(ticker, records):
-	print("Saving {} price history: {} days price".format(ticker, len(records)))
-	count = msqlite.table_row_count(PRICE_HISTORY_TABLE, conn)
-	print("Currently, we have {} price records".format(count))
+	print("save {} price history: {} days price".format(ticker, len(records)))
+	count_sql = "select count(*) from " + PRICE_HISTORY_TABLE + " where ticker='" + ticker + "'"
+
+	print("record count:{}".format(query_single_value(count_sql)))
 
 	for record in records:
 		record['ticker'] = ticker
-		cur.execute("INSERT OR REPLACE INTO " + PRICE_HISTORY_TABLE + " values(:ticker, :date, :open, :high, :low, :close, :volumn, :adj_close)", record)
+		record['adj_close'] = ''
+		cur.execute("INSERT OR REPLACE INTO " + PRICE_HISTORY_TABLE + " values(:ticker, :date, :open, :high, :low, :close, :volume, :adj_close)", record)
 
-	count = msqlite.table_row_count(PRICE_HISTORY_TABLE, conn)
-	print("After update, we have {} price records".format(count))
+	print("record count:{}".format(query_single_value(count_sql)))
 
 	conn.commit()
 
 def save_earning_history(ticker, records):
-	print("Saving {} earning history: {} earnings".format(ticker, len(records)))
-	count = msqlite.table_row_count(EARNING_HISTORY_TABLE, conn)
-	print("Currently, we have {} earning records".format(count))
+	print("save {} earning history: {} earnings".format(ticker, len(records)))
+	count_sql = "select count(*) from " + EARNING_HISTORY_TABLE + " where ticker='" + ticker + "'"
+
+	print("record count:{}".format(query_single_value(count_sql)))
 
 	for record in records:
 		record['ticker'] = ticker
 		cur.execute("insert or replace into " + EARNING_HISTORY_TABLE + " values(:ticker, :date, :estimate, :period, :reported, :surprise1, :surprise2)", record)
 
-	cur.execute("select count(*) from " + EARNING_HISTORY_TABLE + " where ticker=:ticker", {'ticker':ticker})
-	print("After update, we have {} earning records".format(cur.fetchall()))
+	print("record count:{}".format(query_single_value(count_sql)))
 
 	conn.commit()
+
+def query_single_value(sql, params = None):
+	if(params):
+		cur = conn.execute(sql, params)
+	else:
+		cur = conn.execute(sql)
+
+	value = cur.fetchall()[0][0]
+	cur.close()
+	return value
+
 
 def save_earning_schedule(list_schedule):
 	msqlite.backup_table(SCHEDULE_TABLE, None, conn)
