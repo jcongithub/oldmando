@@ -122,47 +122,6 @@ def merge_df(p1, p2):
 #####################################################################################################
 ##   Download stock price history, stock earnings history
 
-def download_earning_history(tickers):
-	earnings = {};
-	for ticker in tickers:
-		try:
-			print('Downloading earning history: {}'.format(ticker))
-			base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
-			params = {'ticker'           : ticker,
-					  'pg_no'            : 1,
-					  'recordsToDisplay' : 100,
-					  'maxNoOfPages'     : 10,
-					  'recordsPerPage'   : 25,
-					  'showAllFlag'      :'yes'}
-
-			response = requests.get(base_url, params=params)
-			text = response.text	
-			soup = BeautifulSoup(text, 'html.parser')
-			divs = soup.find_all('div', {'id' : 'divPrint'})
-			records = []
-			if(len(divs) > 0):
-				tables = divs[0].find_all('table')
-				if(len(tables) > 1):
-					trs = tables[1].find_all('tr')
-
-					for i in range(1, len(trs)):
-						tds = trs[i].find_all('td')
-						record = {
-							'date'      : datetime.strptime(tds[0].text.strip(), '%d-%b-%y').date().isoformat(),
-							'period'    : tds[1].text.strip(),
-							'estimate'  : tds[2].text.strip(),
-							'reported'  : tds[3].text.strip(),
-							'surprise1' : tds[4].text.strip(),
-							'surprise2' : tds[4].text.strip(),
-						}
-						records.append(record)
-
-					earnings[ticker] = pd.DataFrame(records)
-					#dao.save_earning_history(ticker, records)
-		except:
-			print(sys.exc_info())
-
-	return earnings;
 
 def download_price_history(tickers):
 	skipped = []
@@ -210,10 +169,7 @@ def content_to_file(file_path, content):
 		f.write(content)
 
 def download_earning_schedule(start_date=datetime.now(), number_days = 1, update_database = True):
-	#print("TOBE FINISHED")
-	#exit
 	records = []
-
 	for i in range(number_days):
 		date = start_date + timedelta(days = i)
 		sdate = date.strftime('%Y-%b-%d')
@@ -223,6 +179,7 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 		params = {'date' : sdate}
 		response = requests.get(base_url, params=params)
 		txt = response.text	
+
 		soup = BeautifulSoup(txt, 'html.parser')
 		tables = soup.find_all('table', {'id' : 'ECCompaniesTable'})
 
@@ -249,13 +206,10 @@ def download_earning_schedule(start_date=datetime.now(), number_days = 1, update
 				}
 
 				records.append(record)
-
-			print("{} companies on {}".format(len(records), sdate))			
-			dao.save_earning_schedule(records)
 		else:
 			print("downloading faild")
 	
-	return records
+	return pd.DataFrame(records)
 
 
 def download_sp500_company_list():
@@ -349,12 +303,6 @@ def import_price(ticker):
 
 		dao.save_price_history(ticker, df.T.to_dict().values())
 
-def import_earning(ticker):
-	file_name = 'data/' + ticker + '.earning.csv'
-	df = pd.read_csv(file_name, header=1, names=['date','estimate','period','quarter','reported','surprise1','surprise2'])
-	print(df)
-	
-	dao.save_earning_history(ticker, df.T.to_dict().values())
 
 	
 
@@ -390,4 +338,60 @@ def download_price_google(ticker):
 def strfftime(s, f1, f2):
 	return time.strftime(f2, time.strptime(s, f1))
 
+####################################################################################################
+def get_all_stocks():
+	return pd.read_sql("SELECT * FROM stocks", conn)
 
+def import_all_earning_history():
+	stocks = get_all_stocks()
+	for index, row in stocks.iterrows():
+		ticker = row['ticker']
+		import_earning_history(ticker)
+			
+def import_earning_history(ticker):
+	file_name = 'data/' + ticker + 'earning.csv'
+	df = pd.read_csv(file_name, header=1, names=['date','estimate','period','reported','surprise1','surprise2'])
+	print(df)
+	dao.save_earning_history(ticker, df.T.to_dict().values())
+
+def download_all_earning_history():
+	stocks = get_all_stocks()
+	for index, row in stocks.iterrows():
+		ticker = row['ticker']
+		download_earning_history(ticker)
+
+def download_earning_history(ticker):
+	print('Downloading earning history: {}'.format(ticker))
+	base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
+	params = {'ticker'           : ticker,
+			  'pg_no'            : 1,
+			  'recordsToDisplay' : 100,
+			  'maxNoOfPages'     : 10,
+			  'recordsPerPage'   : 25,
+			  'showAllFlag'      :'yes'}
+
+	response = requests.get(base_url, params=params)
+	text = response.text	
+	soup = BeautifulSoup(text, 'html.parser')
+	divs = soup.find_all('div', {'id' : 'divPrint'})
+	records = []
+	if(len(divs) > 0):
+		tables = divs[0].find_all('table')
+		if(len(tables) > 1):
+			trs = tables[1].find_all('tr')
+
+			for i in range(1, len(trs)):
+				tds = trs[i].find_all('td')
+				record = {
+					'date'      : datetime.strptime(tds[0].text.strip(), '%d-%b-%y').date().isoformat(),
+					'period'    : tds[1].text.strip(),
+					'estimate'  : tds[2].text.strip(),
+					'reported'  : tds[3].text.strip(),
+					'surprise1' : tds[4].text.strip(),
+					'surprise2' : tds[4].text.strip(),
+				}
+				records.append(record)
+
+	eh = pd.DataFrame(records)
+	eh.to_csv('data/' + ticker + 'earning.csv', index=False)
+	return eh
