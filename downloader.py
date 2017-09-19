@@ -18,6 +18,7 @@ import dao
 import msqlite
 import urllib
 from dao import conn
+import pandas_datareader.data as web
 
 
 pd.options.display.width = 1000
@@ -364,7 +365,7 @@ def download_all_price_google():
 		ticker = row['ticker']
 		print("downloading price of " + ticker)
 		try:
-			download_price_google(ticker)
+			download_price_yahoo(ticker)
 		except:
 			print(sys.exc_info())
 
@@ -384,8 +385,25 @@ def download_price_google(ticker):
 	print(url)
 
 	file_name = 'data/' + ticker + ".price.csv"
-	urllib.request.urlretrieve(url, )
-	return file_name
+	output_file_name, headers = urllib.request.urlretrieve(url, file_name)
+
+	return output_file_name
+
+def download_price_yahoo(ticker):
+	df = web.DataReader(ticker, 'yahoo', start=datetime(1970, 1, 1), end=datetime.now())
+	df = df.reset_index()
+	df = df.rename(columns={'Date'   : 'date',
+						   'Open'   : 'open', 
+						   'High'   : 'high',
+						   'Low'    : 'low',
+						   'Close'  : 'close',
+						   'Volume' : 'volume',
+						   'Adj Close' : 'adj_close'})
+	print(df)
+
+	#df['date'] = df.apply(lambda row : strfftime(str(row['date']), '%Y-%m-%d', '%Y%m%d'), axis=1)
+	df.to_csv('data/' + ticker + '.price.csv', index=False)
+
 
 def strfftime(s, f1, f2):
 	return time.strftime(f2, time.strptime(s, f1))
