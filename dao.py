@@ -8,8 +8,9 @@ from datetime import timedelta
 
 SCHEDULE_TABLE = "s.schedule"
 EARNING_HISTORY_TABLE = "earnings"
-PRICE_HISTORY_TABLE = "prices"
-TRADE_TABLE = "t.trades"
+PRICE_HISTORY_TABLE   = "prices"
+STOCK_TABLE           = "stocks"
+TRADE_TABLE           = "t.trades"
 
 pd.options.display.width = 1000
 
@@ -60,6 +61,20 @@ def schedule(start_date=datetime.now(), number_days=15, tested_stocks_only=True)
 def backup_earning_history():
 	msqlite.backup_table(EARNING_HISTORY_TABLE, None, conn)
 	
+def save_stock_info(records):
+	print("Save {} stock records".format(len(records)))
+	count_sql = "select count(*) from " + STOCK_TABLE
+	print("Current stock record count:{}".format(query_single_value(count_sql)))
+
+
+	for record in records:
+		cur.execute("INSERT OR REPLACE INTO " + STOCK_TABLE + " values(:ticker, :name, :industry, :sector, :start_date, :size,  :exchange)", record)
+
+	print("Record count:{}".format(query_single_value(count_sql)))
+
+	conn.commit()
+
+
 def save_price_history(ticker, records):
 	print("save {} price history: {} days price".format(ticker, len(records)))
 	count_sql = "select count(*) from " + PRICE_HISTORY_TABLE + " where ticker='" + ticker + "'"

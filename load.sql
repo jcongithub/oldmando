@@ -1,4 +1,16 @@
 --- Load database
+create table stocks
+(
+	ticker varchar not null,
+	name varchar,
+	industry varchar,
+	sector varchar,
+	start_date varchar,
+	size varchar,
+	exchange varchar,
+	constraint stocks_pk primary key (ticker)
+);
+
 create table earnings
 (
 	ticker varchar not null,

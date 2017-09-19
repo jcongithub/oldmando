@@ -275,12 +275,18 @@ def import_sp500():
 	df['size'] = ''
 	df['exchange'] = ''
 	df.to_sql('stocks', conn)
-
+#	Symbol	StartDate	Size(MB)	Description	Exchange	Industry	Sector
 def import_rusell3000():
-	df = pd.read_csv('data/sp500.csv', delim_whitespace=True, header=1, names=['symbol', 'start_date', 'size', 'name', 'exchange', 'industry', 'sector'])
+	df = pd.read_csv('rusell3000.csv', delim_whitespace=True, header=1, names=['symbol', 'start_date', 'size', 'name', 'exchange', 'industry', 'sector'])
 	df.rename(columns={'symbol':'ticker'})
 	df = df.set_index(['symbol'], drop=True)
-	df.to_sql('stocks', conn)
+	df = df.reset_index()
+	df = df.rename(columns={'symbol'   : 'ticker'})
+	df['ticker'] = df.apply(lambda row : row['ticker'].lower(), axis=1)
+	df['start_date'] = df.apply(lambda row : strfftime(row['start_date'], '%#m%#d%Y', '%Y%m%d'), axis=1)
+
+	dao.save_stock_info(df.T.to_dict().values())
+	return df
 
 def merge_price():
 	stocks = pd.read_sql("select * from stocks", conn)
@@ -300,7 +306,7 @@ def import_price(ticker):
 							   'Close'  : 'close',
 							   'Volume' : 'volume'})
 
-		df['date'] = df.apply(lambda row : strfftime(row['date'], '%Y-%m-%d', '%Y%m%d'), axis=1)
+		df['date'] = df.apply(lambda row : strfftime(row['date'], '%Y%m%d', '%Y%m%d'), axis=1)
 
 		dao.save_price_history(ticker, df.T.to_dict().values())
 
