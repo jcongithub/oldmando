@@ -363,6 +363,16 @@ def strfftime(s, f1, f2):
 	return time.strftime(f2, time.strptime(s, f1))
 
 ####################################################################################################
+def earning_report_date(tickers):
+	if(len(tickers) > 0):
+		today = datetime.today().strftime('%Y-%m-%d')
+		sql = 'SELECT * FROM earnings WHERE ticker IN (' + str(tickers)[1:-1] + ") and date > '" + today + "'"
+		return pd.read_sql(sql, conn)
+	else:
+		raise NameError("Empty ticker list")		
+
+
+
 def get_all_stocks():
 	return pd.read_sql("SELECT * FROM stocks", conn)
 
@@ -373,10 +383,16 @@ def import_all_earning_history():
 		import_earning_history(ticker)
 			
 def import_earning_history(ticker):
-	file_name = 'data/' + ticker + 'earning.csv'
-	df = pd.read_csv(file_name, header=1, names=['date','estimate','period','reported','surprise1','surprise2'])
-	print(df)
-	dao.save_earning_history(ticker, df.T.to_dict().values())
+	print("Import earning data of ", ticker)
+	file_name = 'data/' + ticker + '.earning.csv'
+
+	if(isfile(file_name)):
+		try:
+			df = pd.read_csv(file_name, header=0, names=['date','estimate','period','reported','surprise1','surprise2'])
+			print(df)
+			dao.save_earning_history(ticker, df.T.to_dict().values())
+		except:
+			print(sys.exc_info())
 
 def download_all_earning_history():
 	stocks = get_all_stocks()
@@ -385,6 +401,7 @@ def download_all_earning_history():
 		download_earning_history(ticker)
 
 def download_earning_history(ticker):
+	ticker = ticker.lower()
 	print('Downloading earning history: {}'.format(ticker))
 	base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
 	params = {'ticker'           : ticker,
@@ -417,5 +434,5 @@ def download_earning_history(ticker):
 				records.append(record)
 
 	eh = pd.DataFrame(records)
-	eh.to_csv('data/' + ticker + 'earning.csv', index=False)
+	eh.to_csv('data/' + ticker + '.earning.csv', index=False)
 	return eh
