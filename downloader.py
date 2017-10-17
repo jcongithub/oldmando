@@ -283,7 +283,7 @@ def import_rusell3000():
 	df = df.reset_index()
 	df = df.rename(columns={'symbol'   : 'ticker'})
 	df['ticker'] = df.apply(lambda row : row['ticker'].lower(), axis=1)
-	df['start_date'] = df.apply(lambda row : strfftime(row['start_date'], '%#m%#d%Y', '%Y%m%d'), axis=1)
+	#df['start_date'] = df.apply(lambda row : strfftime(row['start_date'], '%m%d%Y', '%Y%m%d'), axis=1)
 
 	dao.save_stock_info(df.T.to_dict().values())
 	return df
@@ -343,21 +343,6 @@ def download_price_google(ticker):
 
 	return output_file_name
 
-def download_price_yahoo(ticker):
-	df = web.DataReader(ticker, 'yahoo', start=datetime(1970, 1, 1), end=datetime.now())
-	df = df.reset_index()
-	df = df.rename(columns={'Date'   : 'date',
-						   'Open'   : 'open', 
-						   'High'   : 'high',
-						   'Low'    : 'low',
-						   'Close'  : 'close',
-						   'Volume' : 'volume',
-						   'Adj Close' : 'adj_close'})
-	print(df)
-
-	#df['date'] = df.apply(lambda row : strfftime(str(row['date']), '%Y-%m-%d', '%Y%m%d'), axis=1)
-	df.to_csv('data/' + ticker + '.price.csv', index=False)
-
 
 def strfftime(s, f1, f2):
 	return time.strftime(f2, time.strptime(s, f1))
@@ -373,7 +358,7 @@ def import_all_earning_history():
 		import_earning_history(ticker)
 			
 def import_earning_history(ticker):
-	file_name = 'data/' + ticker + 'earning.csv'
+	file_name = 'data/' + ticker + '.earning.csv'
 	df = pd.read_csv(file_name, header=1, names=['date','estimate','period','reported','surprise1','surprise2'])
 	print(df)
 	dao.save_earning_history(ticker, df.T.to_dict().values())
@@ -385,37 +370,71 @@ def download_all_earning_history():
 		download_earning_history(ticker)
 
 def download_earning_history(ticker):
-	print('Downloading earning history: {}'.format(ticker))
-	base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
-	params = {'ticker'           : ticker,
-			  'pg_no'            : 1,
-			  'recordsToDisplay' : 100,
-			  'maxNoOfPages'     : 10,
-			  'recordsPerPage'   : 25,
-			  'showAllFlag'      :'yes'}
+	file_name = 'data/' + ticker + '.earning.csv'
+	if(not isfile(file_name)):
+		print('Downloading earning history: {}'.format(ticker))
+		base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
+		params = {'ticker'           : ticker,
+				  'pg_no'            : 1,
+				  'recordsToDisplay' : 100,
+				  'maxNoOfPages'     : 10,
+				  'recordsPerPage'   : 25,
+				  'showAllFlag'      :'yes'}
 
-	response = requests.get(base_url, params=params)
-	text = response.text	
-	soup = BeautifulSoup(text, 'html.parser')
-	divs = soup.find_all('div', {'id' : 'divPrint'})
-	records = []
-	if(len(divs) > 0):
-		tables = divs[0].find_all('table')
-		if(len(tables) > 1):
-			trs = tables[1].find_all('tr')
+		response = requests.get(base_url, params=params)
+		text = response.text	
+		soup = BeautifulSoup(text, 'html.parser')
+		divs = soup.find_all('div', {'id' : 'divPrint'})
+		records = []
+		if(len(divs) > 0):
+			tables = divs[0].find_all('table')
+			if(len(tables) > 1):
+				trs = tables[1].find_all('tr')
 
-			for i in range(1, len(trs)):
-				tds = trs[i].find_all('td')
-				record = {
-					'date'      : datetime.strptime(tds[0].text.strip(), '%d-%b-%y').date().isoformat(),
-					'period'    : tds[1].text.strip(),
-					'estimate'  : tds[2].text.strip(),
-					'reported'  : tds[3].text.strip(),
-					'surprise1' : tds[4].text.strip(),
-					'surprise2' : tds[4].text.strip(),
-				}
-				records.append(record)
+				for i in range(1, len(trs)):
+					tds = trs[i].find_all('td')
+					record = {
+						'date'      : datetime.strptime(tds[0].text.strip(), '%d-%b-%y').date().isoformat(),
+						'period'    : tds[1].text.strip(),
+						'estimate'  : tds[2].text.strip(),
+						'reported'  : tds[3].text.strip(),
+						'surprise1' : tds[4].text.strip(),
+						'surprise2' : tds[4].text.strip(),
+					}
+					records.append(record)
 
-	eh = pd.DataFrame(records)
-	eh.to_csv('data/' + ticker + 'earning.csv', index=False)
-	return eh
+		eh = pd.DataFrame(records)
+		eh.to_csv(file_name, index=False)
+		return eh
+
+
+def download_all_price_history():
+	stocks = get_all_stocks()
+	for index, row in stocks.iterrows():
+		ticker = row['ticker']
+		try:
+			download_price_history(ticker)
+		except:
+			print(sys.exc_info())
+
+
+def download_price_history(ticker):
+	print("Downloading price history: " + ticker)
+
+	file_name = 'data/' + ticker + '.price.csv'
+	if(not isfile(file_name)):
+		#time.sleep(10)
+		df = web.DataReader(ticker, 'yahoo', start=datetime(1970, 1, 1), end=datetime.now())
+		df = df.reset_index()
+		df = df.rename(columns={'Date'   : 'date',
+							   'Open'   : 'open', 
+							   'High'   : 'high',
+							   'Low'    : 'low',
+							   'Close'  : 'close',
+							   'Volume' : 'volume',
+							   'Adj Close' : 'adj_close'})
+		print(df)
+
+		#df['date'] = df.apply(lambda row : strfftime(str(row['date']), '%Y-%m-%d', '%Y%m%d'), axis=1)
+		df.to_csv('data/' + ticker + '.price.csv', index=False)
+
