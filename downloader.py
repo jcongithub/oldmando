@@ -348,6 +348,16 @@ def strfftime(s, f1, f2):
 	return time.strftime(f2, time.strptime(s, f1))
 
 ####################################################################################################
+def earning_report_date(tickers):
+	if(len(tickers) > 0):
+		today = datetime.today().strftime('%Y-%m-%d')
+		sql = 'SELECT * FROM earnings WHERE ticker IN (' + str(tickers)[1:-1] + ") and date > '" + today + "'"
+		return pd.read_sql(sql, conn)
+	else:
+		raise NameError("Empty ticker list")		
+
+
+
 def get_all_stocks():
 	return pd.read_sql("SELECT * FROM stocks", conn)
 
@@ -358,29 +368,43 @@ def import_all_earning_history():
 		import_earning_history(ticker)
 			
 def import_earning_history(ticker):
+	print("Import earning data of ", ticker)
 	file_name = 'data/' + ticker + '.earning.csv'
-	df = pd.read_csv(file_name, header=1, names=['date','estimate','period','reported','surprise1','surprise2'])
-	print(df)
-	dao.save_earning_history(ticker, df.T.to_dict().values())
+
+	if(isfile(file_name)):
+		try:
+			df = pd.read_csv(file_name, header=0, names=['date','estimate','period','reported','surprise1','surprise2'])
+			print(df)
+			dao.save_earning_history(ticker, df.T.to_dict().values())
+		except:
+			print(sys.exc_info())
 
 def download_all_earning_history():
 	stocks = get_all_stocks()
+	print("number of stocks:{}".format(len(stocks)))
 	for index, row in stocks.iterrows():
 		ticker = row['ticker']
 		download_earning_history(ticker)
 
 def download_earning_history(ticker):
-	file_name = 'data/' + ticker + '.earning.csv'
-	if(not isfile(file_name)):
-		print('Downloading earning history: {}'.format(ticker))
-		base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
-		params = {'ticker'           : ticker,
-				  'pg_no'            : 1,
-				  'recordsToDisplay' : 100,
-				  'maxNoOfPages'     : 10,
-				  'recordsPerPage'   : 25,
-				  'showAllFlag'      :'yes'}
+	print('Downloading earning history: {}'.format(ticker))
+	base_url = 'http://client1.zacks.com/demo/zackscal/tools/earnings_announcements_company.php'
+	params = {'ticker'           : ticker,
+			  'pg_no'            : 1,
+			  'recordsToDisplay' : 100,
+			  'maxNoOfPages'     : 10,
+			  'recordsPerPage'   : 25,
+			  'showAllFlag'      :'yes'}
 
+	response = requests.get(base_url, params=params)
+	text = response.text	
+	soup = BeautifulSoup(text, 'html.parser')
+	divs = soup.find_all('div', {'id' : 'divPrint'})
+	records = []
+	if(len(divs) > 0):
+		tables = divs[0].find_all('table')
+		if(len(tables) > 1):
+			trs = tables[1].find_all('tr')
 		response = requests.get(base_url, params=params)
 		text = response.text	
 		soup = BeautifulSoup(text, 'html.parser')
@@ -404,7 +428,7 @@ def download_earning_history(ticker):
 					records.append(record)
 
 		eh = pd.DataFrame(records)
-		eh.to_csv(file_name, index=False)
+		eh.to_csv('data/' + ticker + '.earning.csv', index=False)
 		return eh
 
 
@@ -437,4 +461,3 @@ def download_price_history(ticker):
 
 		#df['date'] = df.apply(lambda row : strfftime(str(row['date']), '%Y-%m-%d', '%Y%m%d'), axis=1)
 		df.to_csv('data/' + ticker + '.price.csv', index=False)
-

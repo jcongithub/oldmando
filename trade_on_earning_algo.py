@@ -518,6 +518,18 @@ def trading_signal(start_date = datetime.now(), number_days = 20):
 
 	return winning_stocks
 
+def backtest(stock, start_days, end_days):
+	for e in stock.earning_history():
+		start_date = e.date()
+		end_date = e.date()
+		for start_day in range[0, start_days]:
+			for end_day in range[0, end_days]:
+				start_price = stock.price_before(start_date)
+				end_price = stock.price_end(end_date)
+				start_date = start_price.date()
+				end_date = end_price.date()
+
+
 
 #def weekly_calculation():
 	#download earning schedule
