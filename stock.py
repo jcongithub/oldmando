@@ -14,14 +14,21 @@ class Stock:
 		sql = "select * from prices where ticker='" + self.ticker + "' and date <='" + sdate + "' order by date desc limit 1"
 		return self.get_price(sql)
 
+
 	def after(self, date):
 		sdate = date.strftime('%Y%m%d')
 		sql = "select * from prices where ticker='" + self.ticker + "' and date >='" + sdate + "' order by date limit 1"
 		return self.get_price(sql)
 
-	def get_price(self, sql):
+	def range(self, date, days_before, days_after):
+		sdate = date.strftime('%Y-%m-%d')
+		sql = "select * from (select * from prices where ticker=:ticker and date < :date order by date desc limit :days_before) union all select * from (select * from prices where ticker=:ticker and date >= :date order by date limit :days_after) order by date"
+		return self.get_price(sql, {'ticker':self.ticker, 'date': sdate, 'days_before':days_before, 'days_after' : days_after + 1})
+
+
+	def get_price(self, sql, params={}):
 		print(sql)
-		cur = conn.execute(sql, {})
+		cur = conn.execute(sql, params)
 		rows = cur.fetchall()
 		prices = [{'ticker'    : row[0], 
 				   'date'      : row[1],
@@ -88,6 +95,8 @@ class Stock:
 
 		return earnings
 
+	def show(list_dict, index):
+		print(pd.DataFrame(list_dict, index=index))
 
 	def test():
 		adm = Stock('TSLA')
