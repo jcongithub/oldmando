@@ -9,6 +9,22 @@ class Stock:
 	def __str__(self):
 		return self.ticker
 
+	def earnings(self):
+		sql = "select * from earnings where ticker = :ticker order by date";
+		row_convertor = lambda row: {
+				#'ticker' 	: row[0],
+				'date'		: row[1],
+				'estimate'	: row[2],
+				'period'	: row[3],
+				'reported'	: row[4],
+				'surprise1'	: row[5],
+				'surprise2'	: row[6]
+			}
+		
+		result = self.run_query(sql, {'ticker':self.ticker}, row_convertor)
+		#return pd.DataFrame.from_records(result, index='date')
+		return result
+
 	def before(self, date):
 		sdate = date.strftime('%Y%m%d')
 		sql = "select * from prices where ticker='" + self.ticker + "' and date <='" + sdate + "' order by date desc limit 1"
@@ -27,7 +43,7 @@ class Stock:
 
 
 	def get_price(self, sql, params={}):
-		print(sql)
+		#print(sql)
 		cur = conn.execute(sql, params)
 		rows = cur.fetchall()
 		prices = [{'ticker'    : row[0], 
@@ -40,6 +56,14 @@ class Stock:
 				   'adj_close' : row[7]} for row in rows]
 		cur.close()
 		return prices
+
+	def run_query(self, sql, params={}, row_convertor={}):
+		#print(sql)
+		cur = conn.execute(sql, params)
+		rows = cur.fetchall()
+		cur.close()
+
+		return list(map(row_convertor, rows))
 
 	def list():
 		sql = 'select * from stocks'
@@ -96,7 +120,7 @@ class Stock:
 		return earnings
 
 	def show(list_dict, index):
-		print(pd.DataFrame(list_dict, index=index))
+		print(pd.DataFrame.from_records(list_dict, index=index))
 
 	def test():
 		adm = Stock('TSLA')
@@ -111,6 +135,18 @@ class Stock:
 		df = pd.DataFrame(Stock.earning_on('2017-10-16'))
 		df = df.set_index(['ticker'])
 		print(df)
+
+	def backtest(ticker):
+		stock = Stock(ticker)
+		earnings = stock.earnings()
+		Stock.show(earnings, 'date')
+		for e in earnings :
+			report_date = datetime.strptime(e['date'], '%Y-%m-%d')
+			print('{} {}'.format(e['date'], e['surprise1']))
+			prices = stock.range(report_date, 1, 1)
+			Stock.show(prices, 'date')
+			print('')
+
 
 #if __name__ == '__main__':
 

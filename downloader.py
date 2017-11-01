@@ -361,23 +361,6 @@ def earning_report_date(tickers):
 def get_all_stocks():
 	return pd.read_sql("SELECT * FROM stocks", conn)
 
-def import_all_earning_history():
-	stocks = get_all_stocks()
-	for index, row in stocks.iterrows():
-		ticker = row['ticker']
-		import_earning_history(ticker)
-			
-def import_earning_history(ticker):
-	print("Import earning data of ", ticker)
-	file_name = 'data/' + ticker + '.earning.csv'
-
-	if(isfile(file_name)):
-		try:
-			df = pd.read_csv(file_name, header=0, names=['date','estimate','period','reported','surprise1','surprise2'])
-			print(df)
-			dao.save_earning_history(ticker, df.T.to_dict().values())
-		except:
-			print(sys.exc_info())
 
 def download_all_earning_history():
 	stocks = get_all_stocks()
