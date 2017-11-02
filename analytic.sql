@@ -86,3 +86,12 @@ FROM (
 GROUP BY ticker 
 HAVING profit2 = max(profit2)
 ORDER BY date
+
+
+
+
+----Find stocks what all last 5 reports have positive  surprises
+select ticker from (
+  select * from earnings e where date in (select date from earnings where ticker = e.ticker and reported is not null order by date desc limit 5)
+) where surprise1 > 0 group by ticker having count(*) >= 5;
+

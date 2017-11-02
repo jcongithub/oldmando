@@ -119,6 +119,9 @@ class Stock:
 
 		return earnings
 
+	def query(sql):
+		return pd.read_sql(sql, conn);
+
 	def show(list_dict, index):
 		print(pd.DataFrame.from_records(list_dict, index=index))
 
