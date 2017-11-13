@@ -95,3 +95,6 @@ select ticker from (
   select * from earnings e where date in (select date from earnings where ticker = e.ticker and reported is not null order by date desc limit 5)
 ) where surprise1 > 0 group by ticker having count(*) >= 5;
 
+
+select * from trades where profit2 > 2 and ticker = 'qcco' 
+group by ticker, date_earning having profit2 = max(profit2) order by date_earning;

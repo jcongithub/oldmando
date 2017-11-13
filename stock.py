@@ -38,7 +38,7 @@ class Stock:
 
 	def range(self, date, days_before, days_after):
 		sdate = date.strftime('%Y-%m-%d')
-		sql = "select * from (select * from prices where ticker=:ticker and date < :date order by date desc limit :days_before) union all select * from (select * from prices where ticker=:ticker and date >= :date order by date limit :days_after) order by date"
+		sql = "select * from (select * from prices where ticker=:ticker and date < :date order by date desc limit :days_before) union all select * from (select * from prices where ticker=:ticker and date >:date order by date limit :days_after) union all select * from (select * from prices where ticker=:ticker and date =:date order by date limit :days_after) order by date"
 		return self.get_price(sql, {'ticker':self.ticker, 'date': sdate, 'days_before':days_before, 'days_after' : days_after + 1})
 
 
@@ -66,7 +66,7 @@ class Stock:
 		return list(map(row_convertor, rows))
 
 	def list():
-		sql = 'select * from stocks'
+		sql = 'select * from stocks order by ticker'
 		cur = conn.execute(sql, {})
 		rows = cur.fetchall()
 		stocks = [{
@@ -122,8 +122,8 @@ class Stock:
 	def query(sql):
 		return pd.read_sql(sql, conn);
 
-	def show(list_dict, index):
-		print(pd.DataFrame.from_records(list_dict, index=index))
+	def show(list_dict, index, columns=None):
+		print(pd.DataFrame.from_records(list_dict, index=index, columns=columns))
 
 	def test():
 		adm = Stock('TSLA')

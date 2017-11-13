@@ -288,30 +288,6 @@ def import_rusell3000():
 	dao.save_stock_info(df.T.to_dict().values())
 	return df
 
-def merge_price():
-	stocks = pd.read_sql("select * from stocks", conn)
-	for index, row in stocks.iterrows():
-		ticker = row['ticker']
-		print("merge price " + ticker)
-		import_price(ticker)
-
-def import_price(ticker):
-	file_name = 'data/' + ticker + '.price.csv'
-	if(isfile(file_name)):
-		df = pd.read_csv(file_name)	
-		df = df.rename(columns={'Date'   : 'date',
-							   'Open'   : 'open', 
-							   'High'   : 'high',
-							   'Low'    : 'low',
-							   'Close'  : 'close',
-							   'Volume' : 'volume'})
-
-		df['date'] = df.apply(lambda row : strfftime(row['date'], '%Y%m%d', '%Y%m%d'), axis=1)
-
-		dao.save_price_history(ticker, df.T.to_dict().values())
-
-
-	
 
 def download_all_price_google():
 	stocks = pd.read_sql("select * from stocks", conn)
@@ -367,7 +343,9 @@ def download_all_earning_history():
 	print("number of stocks:{}".format(len(stocks)))
 	for index, row in stocks.iterrows():
 		ticker = row['ticker']
-		download_earning_history(ticker)
+		file_name = 'data/' + ticker + '.earning.csv'
+		if(not isfile(file_name)):
+			download_earning_history(ticker)
 
 def download_earning_history(ticker):
 	print('Downloading earning history: {}'.format(ticker))
@@ -381,6 +359,7 @@ def download_earning_history(ticker):
 
 	response = requests.get(base_url, params=params)
 	text = response.text	
+	print(text)
 	soup = BeautifulSoup(text, 'html.parser')
 	divs = soup.find_all('div', {'id' : 'divPrint'})
 	records = []
@@ -410,19 +389,31 @@ def download_earning_history(ticker):
 					}
 					records.append(record)
 
+		print(records)
 		eh = pd.DataFrame(records)
 		eh.to_csv('data/' + ticker + '.earning.csv', index=False)
 		return eh
 
 
 def download_all_price_history():
+	download_all_history(download_price_history)
+	# stocks = get_all_stocks()
+	# for index, row in stocks.iterrows():
+	# 	ticker = row['ticker']
+	# 	try:
+	# 		download_price_history(ticker)
+	# 	except:
+	# 		print(sys.exc_info())
+
+def download_all_history(downloader):
 	stocks = get_all_stocks()
 	for index, row in stocks.iterrows():
-		ticker = row['ticker']
 		try:
-			download_price_history(ticker)
+			downloader(row['ticker'])
 		except:
 			print(sys.exc_info())
+
+
 
 
 def download_price_history(ticker):
