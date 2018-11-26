@@ -1,5 +1,3 @@
-# oldmando
-ommon Tasks
 Find top 10 largest file in a directory
 >find /start/dir –type f –exec du{} \; | sort –rn | head -10
 
